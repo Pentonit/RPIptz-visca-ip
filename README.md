@@ -28,7 +28,7 @@ A touchscreen-based controller for multiple PTZ cameras using VISCA over IP prot
 
 `sudo apt-get update`  
 `sudo apt-get install python3-venv`  
-`sudo apt-get install -y python3-pyqt5 qt5-qmake qtbase5-dev`
+`sudo apt-get install -y python3-pyqt5 qt5-qmake qtbase5-dev python3-yaml`
 
 3. set up a virtual environment to keep your dependencies separate from your system's Python:
 
