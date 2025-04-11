@@ -91,3 +91,37 @@ class CameraManager:
             except Exception as e:
                 self.logger.error(f"Error updating camera config: {str(e)}")
         return False
+    
+    def store_preset(self, preset_num):
+        """Store current camera position to a preset"""
+        if self.active_camera_index < 0 or self.active_camera_index >= len(self.cameras):
+            return False
+        
+        camera = self.cameras[self.active_camera_index]
+        try:
+            # Send VISCA command to store preset
+            # Preset command format: 8x 01 04 3F 01 pp FF
+            # where pp is preset number (0x00 to 0xFF)
+            command = bytes([0x81, 0x01, 0x04, 0x3F, 0x01, preset_num - 1, 0xFF])
+            self._send_command(camera, command)
+            return True
+        except Exception as e:
+            print(f"Error storing preset: {e}")
+            return False
+    
+    def recall_preset(self, preset_num):
+        """Recall a stored preset position"""
+        if self.active_camera_index < 0 or self.active_camera_index >= len(self.cameras):
+            return False
+        
+        camera = self.cameras[self.active_camera_index]
+        try:
+            # Send VISCA command to recall preset
+            # Preset recall command format: 8x 01 04 3F 02 pp FF
+            # where pp is preset number (0x00 to 0xFF)
+            command = bytes([0x81, 0x01, 0x04, 0x3F, 0x02, preset_num - 1, 0xFF])
+            self._send_command(camera, command)
+            return True
+        except Exception as e:
+            print(f"Error recalling preset: {e}")
+            return False

@@ -46,12 +46,17 @@ class MainWindow(QMainWindow):
         # Create tabs
         self.control_tab = QWidget()
         self.config_tab = QWidget()
+        self.presets_tab = QWidget()  # New presets tab
         
         self.tab_widget.addTab(self.control_tab, "Control")
+        self.tab_widget.addTab(self.presets_tab, "Presets")  # Add presets tab
         self.tab_widget.addTab(self.config_tab, "Configuration")
         
         # Set up the control tab
         self.setup_control_tab()
+        
+        # Set up the presets tab
+        self.setup_presets_tab()
         
         # Set up the configuration tab
         self.setup_config_tab()
@@ -242,71 +247,94 @@ class MainWindow(QMainWindow):
         
         layout.addLayout(controls_layout)
     
-    def setup_config_tab(self):
-        """Set up the configuration tab with camera settings"""
-        layout = QVBoxLayout(self.config_tab)
-        layout.setSpacing(5)  # Reduce spacing
-        layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
+    def setup_presets_tab(self):
+        """Set up the presets tab with preset buttons"""
+        layout = QVBoxLayout(self.presets_tab)
+        layout.setSpacing(5)
+        layout.setContentsMargins(5, 5, 5, 5)
         
-        # Camera selection for configuration
-        camera_group = QGroupBox("Select Camera to Configure")
+        # Camera selection for presets
+        camera_group = QGroupBox("Camera")
         camera_layout = QHBoxLayout()
-        camera_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
+        camera_layout.setContentsMargins(5, 5, 5, 5)
         
-        self.config_camera_selector = QComboBox()
-        self.config_camera_selector.addItems(self.camera_manager.get_camera_list())
-        self.config_camera_selector.setFont(QFont("Arial", 10))  # Reduced from 12
-        self.config_camera_selector.currentIndexChanged.connect(self.on_config_camera_selected)
+        # Create camera selection buttons for presets tab
+        self.preset_camera_buttons = []
+        for i, camera_name in enumerate(self.camera_manager.get_camera_list()):
+            btn = QPushButton(camera_name)
+            btn.setCheckable(True)
+            btn.setMinimumHeight(40)
+            btn.setFont(QFont("Arial", 10))
+            # Use a lambda with default argument to capture the correct index
+            btn.clicked.connect(lambda checked, idx=i: self.on_preset_camera_clicked(idx))
+            camera_layout.addWidget(btn)
+            self.preset_camera_buttons.append(btn)
         
-        camera_layout.addWidget(QLabel("Camera:"))
-        camera_layout.addWidget(self.config_camera_selector)
+        # Set the first camera as active
+        if self.preset_camera_buttons:
+            self.preset_camera_buttons[0].setChecked(True)
+        
         camera_group.setLayout(camera_layout)
         layout.addWidget(camera_group)
         
-        # Camera configuration fields
-        config_group = QGroupBox("Camera Configuration")
-        config_layout = QGridLayout()
-        config_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
+        # Store button
+        self.store_mode_button = QPushButton("STORE MODE")
+        self.store_mode_button.setCheckable(True)
+        self.store_mode_button.setMinimumHeight(50)
+        self.store_mode_button.setFont(QFont("Arial", 12, QFont.Bold))
+        self.store_mode_button.setStyleSheet("QPushButton:checked { background-color: #ff9900; color: black; }")
+        layout.addWidget(self.store_mode_button)
         
-        # Name field
-        config_layout.addWidget(QLabel("Name:"), 0, 0)
-        self.camera_name_edit = QLineEdit()
-        config_layout.addWidget(self.camera_name_edit, 0, 1)
+        # Preset buttons grid
+        presets_group = QGroupBox("Camera Presets")
+        presets_layout = QGridLayout()
+        presets_layout.setSpacing(10)
         
-        # IP Address field
-        config_layout.addWidget(QLabel("IP Address:"), 1, 0)
-        self.camera_ip_edit = QLineEdit()
-        config_layout.addWidget(self.camera_ip_edit, 1, 1)
+        # Create 9 preset buttons in a 3x3 grid
+        self.preset_buttons = []
+        for i in range(9):
+            row = i // 3
+            col = i % 3
+            btn = QPushButton(f"Preset {i+1}")
+            btn.setMinimumSize(100, 80)
+            btn.setFont(QFont("Arial", 12))
+            # Connect to preset handler with the preset number
+            btn.clicked.connect(lambda checked, preset_num=i+1: self.on_preset_button(preset_num))
+            presets_layout.addWidget(btn, row, col)
+            self.preset_buttons.append(btn)
         
-        # Port field
-        config_layout.addWidget(QLabel("Port:"), 2, 0)
-        self.camera_port_edit = QSpinBox()
-        self.camera_port_edit.setMinimum(1)
-        self.camera_port_edit.setMaximum(65535)
-        self.camera_port_edit.setValue(52381)  # Default VISCA port
-        config_layout.addWidget(self.camera_port_edit, 2, 1)
-        
-        config_group.setLayout(config_layout)
-        layout.addWidget(config_group)
-        
-        # Save button
-        self.save_config_button = QPushButton("Save Configuration")
-        self.save_config_button.setMinimumHeight(40)  # Reduced from 50
-        self.save_config_button.setFont(QFont("Arial", 10))  # Reduced from 12
-        self.save_config_button.clicked.connect(self.on_save_config)
-        layout.addWidget(self.save_config_button)
-        
-        # Initialize with first camera
-        self.on_config_camera_selected(0)
+        presets_group.setLayout(presets_layout)
+        layout.addWidget(presets_group)
     
-    def on_camera_button_clicked(self, index):
-        """Handle camera selection button click"""
+    def on_preset_camera_clicked(self, index):
+        """Handle camera selection in presets tab"""
         # Update button states
+        for i, btn in enumerate(self.preset_camera_buttons):
+            btn.setChecked(i == index)
+        
+        # Update camera buttons in control tab to match
         for i, btn in enumerate(self.camera_buttons):
             btn.setChecked(i == index)
         
         # Set the active camera
         self.camera_manager.set_active_camera(index)
+    
+    def on_preset_button(self, preset_num):
+        """Handle preset button press"""
+        if self.store_mode_button.isChecked():
+            # Store current position to this preset
+            success = self.camera_manager.store_preset(preset_num)
+            if success:
+                self.preset_buttons[preset_num-1].setText(f"Preset {preset_num} ✓")
+                self.store_mode_button.setChecked(False)  # Turn off store mode after storing
+                QMessageBox.information(self, "Success", f"Position stored to Preset {preset_num}")
+            else:
+                QMessageBox.warning(self, "Error", f"Failed to store Preset {preset_num}")
+        else:
+            # Recall this preset
+            success = self.camera_manager.recall_preset(preset_num)
+            if not success:
+                QMessageBox.warning(self, "Error", f"Failed to recall Preset {preset_num}")
     
     def on_config_camera_selected(self, index):
         """Handle configuration camera selection change"""
