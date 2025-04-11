@@ -47,27 +47,26 @@ class MainWindow(QMainWindow):
         self.control_tab = QWidget()
         self.config_tab = QWidget()
         self.presets_tab = QWidget()  # New presets tab
+        self.system_tab = QWidget()  # New system tab
         
         self.tab_widget.addTab(self.control_tab, "Control")
         self.tab_widget.addTab(self.presets_tab, "Presets")  # Add presets tab
         self.tab_widget.addTab(self.config_tab, "Configuration")
+        self.tab_widget.addTab(self.system_tab, "System")  # Add system tab
         
-        # Set up the control tab
+        # Set up the tabs
         self.setup_control_tab()
-        
-        # Set up the presets tab
         self.setup_presets_tab()
-        
-        # Set up the configuration tab
         self.setup_config_tab()
+        self.setup_system_tab()  # Setup the new system tab
         
-        # Add exit button at the bottom - make it smaller
-        self.exit_button = QPushButton("Exit")
-        self.exit_button.setMinimumHeight(25)  # Further reduced height
-        self.exit_button.setMaximumHeight(25)  # Add maximum height
-        self.exit_button.setFont(QFont("Arial", 9))  # Reduced font size
-        self.exit_button.clicked.connect(self.close)
-        self.main_layout.addWidget(self.exit_button)
+        # Remove the exit button from main layout
+        # self.exit_button = QPushButton("Exit")
+        # self.exit_button.setMinimumHeight(25)
+        # self.exit_button.setMaximumHeight(25)
+        # self.exit_button.setFont(QFont("Arial", 9))
+        # self.exit_button.clicked.connect(self.close)
+        # self.main_layout.addWidget(self.exit_button)
         
         # Start joystick monitoring
         self.joystick_controller.start_monitoring(self.on_joystick_movement)
@@ -492,3 +491,46 @@ class MainWindow(QMainWindow):
         
         # Accept the close event
         event.accept()
+
+    def setup_system_tab(self):
+        """Set up the system tab with exit button and other system controls"""
+        layout = QVBoxLayout(self.system_tab)
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
+        
+        # Add a title label
+        title_label = QLabel("System Controls")
+        title_label.setFont(QFont("Arial", 16, QFont.Bold))
+        title_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title_label)
+        
+        # Add some spacing
+        layout.addSpacing(20)
+        
+        # Add exit button - make it large and centered
+        self.exit_button = QPushButton("EXIT APPLICATION")
+        self.exit_button.setMinimumSize(300, 100)
+        self.exit_button.setFont(QFont("Arial", 16, QFont.Bold))
+        self.exit_button.setStyleSheet("""
+            QPushButton {
+                background-color: #d9534f;
+                color: white;
+                border-radius: 10px;
+            }
+            QPushButton:hover {
+                background-color: #c9302c;
+            }
+            QPushButton:pressed {
+                background-color: #ac2925;
+            }
+        """)
+        self.exit_button.clicked.connect(self.close)
+        
+        # Create a horizontal layout to center the exit button
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        button_layout.addWidget(self.exit_button)
+        button_layout.addStretch()
+        
+        layout.addLayout(button_layout)
+        layout.addStretch()  # Push everything to the top
