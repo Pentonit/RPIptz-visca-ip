@@ -1,2 +1,5 @@
 visca-over-ip==0.5.1
+PyQt5-sip==12.11.0
+PyQt5==5.15.2  # Using an older version that has pre-built wheels for ARM
 gpiozero==2.0.1
+PyYAML==6.0.2

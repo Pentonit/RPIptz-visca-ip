@@ -27,41 +27,24 @@ A touchscreen-based controller for multiple PTZ cameras using VISCA over IP prot
 2. make sure you have the virtual environment installed on your raspberry pi:
 
 `sudo apt-get update`  
-`sudo apt-get install python3-venv`  
-`sudo apt-get install -y python3-pyqt5 qt5-qmake qtbase5-dev python3-yaml`
+`sudo apt-get install python3-venv`
 
-3. set up a virtual environment to keep your dependencies separate from your system's Python:
+3. make sure the run script is executable:
 
-`python3 -m venv venv`
+`chmod +x run.sh`
 
-4. Activate the virtual environment:
-
-`source venv/bin/activate`
-
-5. Install the required dependencies:
-
-`pip install -r requirements.txt`
-
-6. deactivate the virtual environment:
-
-`deactivate`
-
-7. Connect your hardware:
+4. Connect your hardware:
 - Connect the MCP3008 to the Raspberry Pi's SPI pins
 - Connect the analog joystick to the MCP3008
 - Connect the touchscreen display
 
-8. Configure your cameras:
+5. Configure your cameras:
 - Edit the `config/config.yaml` file to match your camera IP addresses and ports
 - Or use the configuration UI in the application
 
-9. Run the application:
+6. Run the application:
 
 `./run.sh`
-
-or
-
-`python3 src/main.py`
 
 ## Joystick Configuration
 
