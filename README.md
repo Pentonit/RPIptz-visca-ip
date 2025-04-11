@@ -21,7 +21,7 @@ A touchscreen-based controller for multiple PTZ cameras using VISCA over IP prot
 
 1. Clone this repository on your Raspberry Pi:
 
-`git clone`  
+`git clone https://github.com/Pentonit/RPIptz-visca-ip`  
 `cd RPIptz-visca-ip`
 
 2. make sure you have the virtual environment installed on your raspberry pi:
