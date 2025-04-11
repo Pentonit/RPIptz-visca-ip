@@ -22,8 +22,8 @@ class MainWindow(QMainWindow):
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout(self.central_widget)
-        self.main_layout.setSpacing(3)  # Further reduce spacing
-        self.main_layout.setContentsMargins(3, 3, 3, 3)  # Further reduce margins
+        self.main_layout.setSpacing(2)  # Further reduce spacing
+        self.main_layout.setContentsMargins(2, 2, 2, 2)  # Further reduce margins
         
         # Create tab widget for different screens
         self.tab_widget = QTabWidget()
@@ -44,9 +44,9 @@ class MainWindow(QMainWindow):
         
         # Add exit button at the bottom - make it smaller
         self.exit_button = QPushButton("Exit")
-        self.exit_button.setMinimumHeight(30)  # Further reduced from 40
-        self.exit_button.setMaximumHeight(30)  # Add maximum height
-        self.exit_button.setFont(QFont("Arial", 10))  # Reduced from 12
+        self.exit_button.setMinimumHeight(25)  # Further reduced height
+        self.exit_button.setMaximumHeight(25)  # Add maximum height
+        self.exit_button.setFont(QFont("Arial", 9))  # Reduced font size
         self.exit_button.clicked.connect(self.close)
         self.main_layout.addWidget(self.exit_button)
         
@@ -61,13 +61,13 @@ class MainWindow(QMainWindow):
     def setup_control_tab(self):
         """Set up the control tab with camera selection and controls"""
         layout = QVBoxLayout(self.control_tab)
-        layout.setSpacing(3)  # Further reduce spacing
-        layout.setContentsMargins(3, 3, 3, 3)  # Further reduce margins
+        layout.setSpacing(2)  # Further reduce spacing
+        layout.setContentsMargins(2, 2, 2, 2)  # Further reduce margins
         
         # Camera selection - replace dropdown with buttons
         camera_group = QGroupBox("Camera Selection")
         camera_layout = QHBoxLayout()
-        camera_layout.setContentsMargins(3, 3, 3, 3)  # Reduce margins
+        camera_layout.setContentsMargins(2, 2, 2, 2)  # Reduce margins
         
         # Create camera selection buttons instead of dropdown
         self.camera_buttons = []
@@ -88,10 +88,18 @@ class MainWindow(QMainWindow):
         camera_group.setLayout(camera_layout)
         layout.addWidget(camera_group)
         
+        # Create a horizontal layout for joystick info and camera controls
+        controls_layout = QHBoxLayout()
+        controls_layout.setSpacing(2)
+        
+        # Left side: Joystick info and zoom slider
+        left_controls = QVBoxLayout()
+        left_controls.setSpacing(2)
+        
         # Joystick visualization
         joystick_group = QGroupBox("Joystick Control")
         joystick_layout = QGridLayout()
-        joystick_layout.setContentsMargins(3, 3, 3, 3)  # Reduce margins
+        joystick_layout.setContentsMargins(2, 2, 2, 2)  # Reduce margins
         
         self.pan_tilt_label = QLabel("Pan/Tilt: 0, 0")
         self.pan_tilt_label.setFont(QFont("Arial", 10))
@@ -102,12 +110,12 @@ class MainWindow(QMainWindow):
         joystick_layout.addWidget(self.zoom_label, 1, 0)
         
         joystick_group.setLayout(joystick_layout)
-        layout.addWidget(joystick_group)
+        left_controls.addWidget(joystick_group)
         
         # Zoom control slider - make it larger for touch
         zoom_group = QGroupBox("Zoom Control")
         zoom_layout = QVBoxLayout()
-        zoom_layout.setContentsMargins(3, 3, 3, 3)  # Reduce margins
+        zoom_layout.setContentsMargins(2, 2, 2, 2)  # Reduce margins
         
         self.zoom_slider = QSlider(Qt.Horizontal)
         self.zoom_slider.setMinimum(-100)
@@ -120,13 +128,15 @@ class MainWindow(QMainWindow):
         
         zoom_layout.addWidget(self.zoom_slider)
         zoom_group.setLayout(zoom_layout)
-        layout.addWidget(zoom_group)
+        left_controls.addWidget(zoom_group)
         
-        # Camera control buttons
+        controls_layout.addLayout(left_controls, 2)  # Give left side more space
+        
+        # Right side: Camera control buttons
         control_group = QGroupBox("Camera Controls")
         control_layout = QGridLayout()
-        control_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
-        control_layout.setSpacing(5)  # Reduce spacing
+        control_layout.setContentsMargins(2, 2, 2, 2)  # Reduce margins
+        control_layout.setSpacing(2)  # Reduce spacing
         
         # Create directional buttons
         self.btn_up = QPushButton("▲")
@@ -135,10 +145,11 @@ class MainWindow(QMainWindow):
         self.btn_right = QPushButton("►")
         self.btn_stop = QPushButton("■")
         
-        # Set minimum size for buttons to make them touch-friendly but smaller
+        # Set minimum size for buttons - make them smaller
         for btn in [self.btn_up, self.btn_down, self.btn_left, self.btn_right, self.btn_stop]:
-            btn.setMinimumSize(60, 60)  # Reduced from 80x80
-            btn.setFont(QFont("Arial", 14))  # Reduced from 16
+            btn.setMinimumSize(50, 50)  # Further reduced from 60x60
+            btn.setMaximumSize(50, 50)  # Add maximum size
+            btn.setFont(QFont("Arial", 12))  # Reduced from 14
         
         # Connect button signals
         self.btn_up.pressed.connect(lambda: self.on_direction_button(0, -1))
@@ -163,7 +174,9 @@ class MainWindow(QMainWindow):
         control_layout.addWidget(self.btn_down, 2, 1)
         
         control_group.setLayout(control_layout)
-        layout.addWidget(control_group)
+        controls_layout.addWidget(control_group, 1)  # Give right side less space
+        
+        layout.addLayout(controls_layout)
     
     def setup_config_tab(self):
         """Set up the configuration tab with camera settings"""
