@@ -124,6 +124,16 @@ class MainWindow(QMainWindow):
         self.zoom_slider.setTickPosition(QSlider.TicksBelow)
         self.zoom_slider.setTickInterval(10)
         self.zoom_slider.setMinimumHeight(50)  # Make slider taller
+        # Make slider handle bigger for touch
+        self.zoom_slider.setStyleSheet("""
+            QSlider::handle:horizontal {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #b4b4b4, stop:1 #8f8f8f);
+                border: 1px solid #5c5c5c;
+                width: 30px;
+                margin: -10px 0;
+                border-radius: 5px;
+            }
+        """)
         self.zoom_slider.valueChanged.connect(self.on_zoom_slider_changed)
         
         zoom_layout.addWidget(self.zoom_slider)
@@ -142,6 +152,16 @@ class MainWindow(QMainWindow):
         self.speed_slider.setTickPosition(QSlider.TicksBelow)
         self.speed_slider.setTickInterval(4)
         self.speed_slider.setMinimumHeight(50)  # Make slider taller
+        # Make slider handle bigger for touch
+        self.speed_slider.setStyleSheet("""
+            QSlider::handle:horizontal {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #b4b4b4, stop:1 #8f8f8f);
+                border: 1px solid #5c5c5c;
+                width: 30px;
+                margin: -10px 0;
+                border-radius: 5px;
+            }
+        """)
         self.speed_slider.valueChanged.connect(self.on_speed_slider_changed)
         
         self.speed_label = QLabel(f"Speed: {self.speed_slider.value()}")
