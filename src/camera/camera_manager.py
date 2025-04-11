@@ -125,3 +125,13 @@ class CameraManager:
         except Exception as e:
             print(f"Error recalling preset: {e}")
             return False
+            
+    def _send_command(self, camera, command):
+        """Send a raw VISCA command to the camera"""
+        try:
+            # Use the camera's socket to send the command
+            camera._socket.send(command)
+            return True
+        except Exception as e:
+            self.logger.error(f"Error sending command to camera: {str(e)}")
+            return False

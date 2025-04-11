@@ -336,6 +336,63 @@ class MainWindow(QMainWindow):
             if not success:
                 QMessageBox.warning(self, "Error", f"Failed to recall Preset {preset_num}")
     
+    def setup_config_tab(self):
+        """Set up the configuration tab with camera settings"""
+        layout = QVBoxLayout(self.config_tab)
+        layout.setSpacing(5)  # Reduce spacing
+        layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
+        
+        # Camera selection for configuration
+        camera_group = QGroupBox("Select Camera to Configure")
+        camera_layout = QHBoxLayout()
+        camera_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
+        
+        self.config_camera_selector = QComboBox()
+        self.config_camera_selector.addItems(self.camera_manager.get_camera_list())
+        self.config_camera_selector.setFont(QFont("Arial", 10))
+        self.config_camera_selector.currentIndexChanged.connect(self.on_config_camera_selected)
+        
+        camera_layout.addWidget(QLabel("Camera:"))
+        camera_layout.addWidget(self.config_camera_selector)
+        camera_group.setLayout(camera_layout)
+        layout.addWidget(camera_group)
+        
+        # Camera configuration fields
+        config_group = QGroupBox("Camera Configuration")
+        config_layout = QGridLayout()
+        config_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
+        
+        # Name field
+        config_layout.addWidget(QLabel("Name:"), 0, 0)
+        self.camera_name_edit = QLineEdit()
+        config_layout.addWidget(self.camera_name_edit, 0, 1)
+        
+        # IP Address field
+        config_layout.addWidget(QLabel("IP Address:"), 1, 0)
+        self.camera_ip_edit = QLineEdit()
+        config_layout.addWidget(self.camera_ip_edit, 1, 1)
+        
+        # Port field
+        config_layout.addWidget(QLabel("Port:"), 2, 0)
+        self.camera_port_edit = QSpinBox()
+        self.camera_port_edit.setMinimum(1)
+        self.camera_port_edit.setMaximum(65535)
+        self.camera_port_edit.setValue(52381)  # Default VISCA port
+        config_layout.addWidget(self.camera_port_edit, 2, 1)
+        
+        config_group.setLayout(config_layout)
+        layout.addWidget(config_group)
+        
+        # Save button
+        self.save_config_button = QPushButton("Save Configuration")
+        self.save_config_button.setMinimumHeight(40)
+        self.save_config_button.setFont(QFont("Arial", 10))
+        self.save_config_button.clicked.connect(self.on_save_config)
+        layout.addWidget(self.save_config_button)
+        
+        # Initialize with first camera
+        self.on_config_camera_selected(0)
+    
     def on_config_camera_selected(self, index):
         """Handle configuration camera selection change"""
         if index >= 0 and index < len(self.camera_manager.cameras):
