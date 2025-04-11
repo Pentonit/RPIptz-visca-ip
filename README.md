@@ -27,7 +27,8 @@ A touchscreen-based controller for multiple PTZ cameras using VISCA over IP prot
 2. make sure you have the virtual environment installed on your raspberry pi:
 
 `sudo apt-get update`  
-`sudo apt-get install python3-venv`
+`sudo apt-get install python3-venv`  
+`sudo apt-get install -y python3-pyqt5 qt5-qmake qtbase5-dev`
 
 3. set up a virtual environment to keep your dependencies separate from your system's Python:
 
