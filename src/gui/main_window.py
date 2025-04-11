@@ -130,6 +130,29 @@ class MainWindow(QMainWindow):
         zoom_group.setLayout(zoom_layout)
         left_controls.addWidget(zoom_group)
         
+        # Add PTZ speed control slider
+        speed_group = QGroupBox("PTZ Speed")
+        speed_layout = QVBoxLayout()
+        speed_layout.setContentsMargins(2, 2, 2, 2)  # Reduce margins
+        
+        self.speed_slider = QSlider(Qt.Horizontal)
+        self.speed_slider.setMinimum(1)
+        self.speed_slider.setMaximum(24)  # VISCA max speed is 24
+        self.speed_slider.setValue(12)  # Default to middle speed
+        self.speed_slider.setTickPosition(QSlider.TicksBelow)
+        self.speed_slider.setTickInterval(4)
+        self.speed_slider.setMinimumHeight(50)  # Make slider taller
+        self.speed_slider.valueChanged.connect(self.on_speed_slider_changed)
+        
+        self.speed_label = QLabel(f"Speed: {self.speed_slider.value()}")
+        self.speed_label.setFont(QFont("Arial", 10))
+        self.speed_label.setAlignment(Qt.AlignCenter)
+        
+        speed_layout.addWidget(self.speed_label)
+        speed_layout.addWidget(self.speed_slider)
+        speed_group.setLayout(speed_layout)
+        left_controls.addWidget(speed_group)
+        
         controls_layout.addLayout(left_controls, 2)  # Give left side more space
         
         # Right side: Camera control buttons
@@ -274,9 +297,12 @@ class MainWindow(QMainWindow):
     
     def on_joystick_movement(self, x, y, zoom):
         """Handle joystick movement"""
+        # Get the current speed setting from the slider
+        speed = self.speed_slider.value() if hasattr(self, 'speed_slider') else 24
+        
         # Scale values to appropriate ranges for camera control
-        pan_speed = int(x * 24)  # VISCA pan speed range: -24 to 24
-        tilt_speed = int(-y * 24)  # VISCA tilt speed range: -24 to 24
+        pan_speed = int(x * speed)  # Use the speed setting
+        tilt_speed = int(-y * speed)  # Use the speed setting
         zoom_speed = int(zoom * 7)  # VISCA zoom speed range: 0 to 7
         
         # Move camera
@@ -287,11 +313,19 @@ class MainWindow(QMainWindow):
         if zoom_speed != 0:
             self.camera_manager.zoom_camera(zoom_speed)
     
+    def on_speed_slider_changed(self, value):
+        """Handle speed slider change"""
+        self.speed_label.setText(f"Speed: {value}")
+        # The actual speed will be used in the direction button handlers
+    
     def on_direction_button(self, pan, tilt):
         """Handle direction button press/release"""
-        # Scale to appropriate ranges for camera control
-        pan_speed = int(pan * 24)  # VISCA pan speed range: -24 to 24
-        tilt_speed = int(tilt * 24)  # VISCA tilt speed range: -24 to 24
+        # Get the current speed setting from the slider
+        speed = self.speed_slider.value() if hasattr(self, 'speed_slider') else 24
+        
+        # Scale to appropriate ranges for camera control using the speed setting
+        pan_speed = int(pan * speed)  # VISCA pan speed range: -24 to 24
+        tilt_speed = int(tilt * speed)  # VISCA tilt speed range: -24 to 24
         
         # Move camera
         self.camera_manager.move_camera(pan_speed, tilt_speed)
