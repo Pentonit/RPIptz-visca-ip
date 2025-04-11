@@ -53,15 +53,28 @@ class CameraManager:
         if camera:
             try:
                 if zoom_speed > 0:
-                    camera.zoom_tele(abs(zoom_speed))
+                    # Use the camera's built-in method for zoom tele (zoom in)
+                    camera.zoom_tele_speed(min(abs(zoom_speed), 7))
                 elif zoom_speed < 0:
-                    camera.zoom_wide(abs(zoom_speed))
+                    # Use the camera's built-in method for zoom wide (zoom out)
+                    camera.zoom_wide_speed(min(abs(zoom_speed), 7))
                 else:
+                    # Use the camera's built-in method for zoom stop
                     camera.zoom_stop()
                 return True
             except Exception as e:
                 self.logger.error(f"Error zooming camera: {str(e)}")
         return False
+            
+    def _send_command(self, camera, command):
+        """Send a raw VISCA command to the camera"""
+        try:
+            # Use the camera's built-in method to send commands
+            camera.send_packet(command)
+            return True
+        except Exception as e:
+            self.logger.error(f"Error sending command to camera: {str(e)}")
+            return False
     
     def stop_camera(self):
         """Stop all movement of the active camera"""
@@ -124,14 +137,4 @@ class CameraManager:
             return True
         except Exception as e:
             print(f"Error recalling preset: {e}")
-            return False
-            
-    def _send_command(self, camera, command):
-        """Send a raw VISCA command to the camera"""
-        try:
-            # Use the camera's socket to send the command
-            camera._socket.send(command)
-            return True
-        except Exception as e:
-            self.logger.error(f"Error sending command to camera: {str(e)}")
             return False
