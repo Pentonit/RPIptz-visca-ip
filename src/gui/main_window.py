@@ -22,8 +22,8 @@ class MainWindow(QMainWindow):
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout(self.central_widget)
-        self.main_layout.setSpacing(5)  # Reduce spacing between widgets
-        self.main_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
+        self.main_layout.setSpacing(3)  # Further reduce spacing
+        self.main_layout.setContentsMargins(3, 3, 3, 3)  # Further reduce margins
         
         # Create tab widget for different screens
         self.tab_widget = QTabWidget()
@@ -42,10 +42,11 @@ class MainWindow(QMainWindow):
         # Set up the configuration tab
         self.setup_config_tab()
         
-        # Add exit button at the bottom
+        # Add exit button at the bottom - make it smaller
         self.exit_button = QPushButton("Exit")
-        self.exit_button.setMinimumHeight(40)  # Reduced from 50
-        self.exit_button.setFont(QFont("Arial", 12))  # Reduced from 14
+        self.exit_button.setMinimumHeight(30)  # Further reduced from 40
+        self.exit_button.setMaximumHeight(30)  # Add maximum height
+        self.exit_button.setFont(QFont("Arial", 10))  # Reduced from 12
         self.exit_button.clicked.connect(self.close)
         self.main_layout.addWidget(self.exit_button)
         
@@ -60,33 +61,42 @@ class MainWindow(QMainWindow):
     def setup_control_tab(self):
         """Set up the control tab with camera selection and controls"""
         layout = QVBoxLayout(self.control_tab)
-        layout.setSpacing(5)  # Reduce spacing
-        layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
+        layout.setSpacing(3)  # Further reduce spacing
+        layout.setContentsMargins(3, 3, 3, 3)  # Further reduce margins
         
-        # Camera selection
+        # Camera selection - replace dropdown with buttons
         camera_group = QGroupBox("Camera Selection")
         camera_layout = QHBoxLayout()
-        camera_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
+        camera_layout.setContentsMargins(3, 3, 3, 3)  # Reduce margins
         
-        self.camera_selector = QComboBox()
-        self.camera_selector.addItems(self.camera_manager.get_camera_list())
-        self.camera_selector.setFont(QFont("Arial", 10))  # Reduced from 12
-        self.camera_selector.currentIndexChanged.connect(self.on_camera_selected)
+        # Create camera selection buttons instead of dropdown
+        self.camera_buttons = []
+        for i, camera_name in enumerate(self.camera_manager.get_camera_list()):
+            btn = QPushButton(camera_name)
+            btn.setCheckable(True)
+            btn.setMinimumHeight(40)  # Make buttons taller for touch
+            btn.setFont(QFont("Arial", 10))
+            # Use a lambda with default argument to capture the correct index
+            btn.clicked.connect(lambda checked, idx=i: self.on_camera_button_clicked(idx))
+            camera_layout.addWidget(btn)
+            self.camera_buttons.append(btn)
         
-        camera_layout.addWidget(QLabel("Active Camera:"))
-        camera_layout.addWidget(self.camera_selector)
+        # Set the first camera as active
+        if self.camera_buttons:
+            self.camera_buttons[0].setChecked(True)
+        
         camera_group.setLayout(camera_layout)
         layout.addWidget(camera_group)
         
         # Joystick visualization
         joystick_group = QGroupBox("Joystick Control")
         joystick_layout = QGridLayout()
-        joystick_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
+        joystick_layout.setContentsMargins(3, 3, 3, 3)  # Reduce margins
         
         self.pan_tilt_label = QLabel("Pan/Tilt: 0, 0")
-        self.pan_tilt_label.setFont(QFont("Arial", 10))  # Reduced from 12
+        self.pan_tilt_label.setFont(QFont("Arial", 10))
         self.zoom_label = QLabel("Zoom: 0")
-        self.zoom_label.setFont(QFont("Arial", 10))  # Reduced from 12
+        self.zoom_label.setFont(QFont("Arial", 10))
         
         joystick_layout.addWidget(self.pan_tilt_label, 0, 0)
         joystick_layout.addWidget(self.zoom_label, 1, 0)
@@ -94,10 +104,10 @@ class MainWindow(QMainWindow):
         joystick_group.setLayout(joystick_layout)
         layout.addWidget(joystick_group)
         
-        # Zoom control slider
+        # Zoom control slider - make it larger for touch
         zoom_group = QGroupBox("Zoom Control")
         zoom_layout = QVBoxLayout()
-        zoom_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
+        zoom_layout.setContentsMargins(3, 3, 3, 3)  # Reduce margins
         
         self.zoom_slider = QSlider(Qt.Horizontal)
         self.zoom_slider.setMinimum(-100)
@@ -105,6 +115,7 @@ class MainWindow(QMainWindow):
         self.zoom_slider.setValue(0)
         self.zoom_slider.setTickPosition(QSlider.TicksBelow)
         self.zoom_slider.setTickInterval(10)
+        self.zoom_slider.setMinimumHeight(50)  # Make slider taller
         self.zoom_slider.valueChanged.connect(self.on_zoom_slider_changed)
         
         zoom_layout.addWidget(self.zoom_slider)
@@ -211,8 +222,13 @@ class MainWindow(QMainWindow):
         # Initialize with first camera
         self.on_config_camera_selected(0)
     
-    def on_camera_selected(self, index):
-        """Handle camera selection change"""
+    def on_camera_button_clicked(self, index):
+        """Handle camera selection button click"""
+        # Update button states
+        for i, btn in enumerate(self.camera_buttons):
+            btn.setChecked(i == index)
+        
+        # Set the active camera
         self.camera_manager.set_active_camera(index)
     
     def on_config_camera_selected(self, index):
@@ -231,10 +247,11 @@ class MainWindow(QMainWindow):
         port = self.camera_port_edit.value()
         
         if self.camera_manager.update_camera_config(index, name, ip, port):
-            # Update camera lists
-            self.camera_selector.clear()
-            self.camera_selector.addItems(self.camera_manager.get_camera_list())
+            # Update camera button text
+            if 0 <= index < len(self.camera_buttons):
+                self.camera_buttons[index].setText(name)
             
+            # Update config dropdown
             self.config_camera_selector.clear()
             self.config_camera_selector.addItems(self.camera_manager.get_camera_list())
             
