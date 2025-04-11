@@ -1,0 +1,15 @@
+cameras:
+  - name: Camera 1
+    ip: 192.168.1.100
+    port: 52381
+  - name: Camera 2
+    ip: 192.168.1.101
+    port: 52381
+  - name: Camera 3
+    ip: 192.168.1.102
+    port: 52381
+joystick:
+  x_pin: 0
+  y_pin: 1
+  zoom_pin: 2
+  deadzone: 0.1
