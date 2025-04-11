@@ -1,9 +1,23 @@
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                             QPushButton, QLabel, QComboBox, QTabWidget, 
                             QGridLayout, QLineEdit, QSpinBox, QGroupBox,
-                            QSlider, QMessageBox)
-from PyQt5.QtCore import Qt, QTimer
+                            QSlider, QMessageBox, QStyle, QProxyStyle)
+from PyQt5.QtCore import Qt, QTimer, QSize
 from PyQt5.QtGui import QFont
+
+# Custom slider style for touch screens
+class TouchSliderStyle(QProxyStyle):
+    def __init__(self):
+        super().__init__()
+    
+    def pixelMetric(self, metric, option, widget):
+        if metric == QStyle.PM_SliderThickness:
+            return 50  # Make the slider thicker
+        elif metric == QStyle.PM_SliderLength:
+            return 80  # Make the handle much longer
+        elif metric == QStyle.PM_SliderControlThickness:
+            return 50  # Make the handle thicker
+        return super().pixelMetric(metric, option, widget)
 
 class MainWindow(QMainWindow):
     def __init__(self, camera_manager, joystick_controller):
@@ -123,21 +137,21 @@ class MainWindow(QMainWindow):
         self.zoom_slider.setValue(0)
         self.zoom_slider.setTickPosition(QSlider.TicksBelow)
         self.zoom_slider.setTickInterval(10)
-        self.zoom_slider.setMinimumHeight(50)  # Make slider taller
-        # Make slider handle much bigger for touch
+        self.zoom_slider.setMinimumHeight(70)  # Make slider even taller
+        
+        # Apply the touch-friendly style
+        touch_style = TouchSliderStyle()
+        self.zoom_slider.setStyle(touch_style)
+        
+        # Make the slider more visible with a border
         self.zoom_slider.setStyleSheet("""
-            QSlider::handle:horizontal {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #b4b4b4, stop:1 #8f8f8f);
-                border: 1px solid #5c5c5c;
-                width: 90px;
-                margin: -20px 0;
-                border-radius: 8px;
-            }
-            QSlider::groove:horizontal {
-                height: 10px;
-                margin: 0px;
+            QSlider {
+                border: 2px solid #5c5c5c;
+                border-radius: 5px;
+                background-color: #f0f0f0;
             }
         """)
+        
         self.zoom_slider.valueChanged.connect(self.on_zoom_slider_changed)
         
         zoom_layout.addWidget(self.zoom_slider)
@@ -155,21 +169,20 @@ class MainWindow(QMainWindow):
         self.speed_slider.setValue(12)  # Default to middle speed
         self.speed_slider.setTickPosition(QSlider.TicksBelow)
         self.speed_slider.setTickInterval(4)
-        self.speed_slider.setMinimumHeight(50)  # Make slider taller
-        # Make slider handle much bigger for touch
+        self.speed_slider.setMinimumHeight(70)  # Make slider even taller
+        
+        # Apply the touch-friendly style
+        self.speed_slider.setStyle(TouchSliderStyle())
+        
+        # Make the slider more visible with a border
         self.speed_slider.setStyleSheet("""
-            QSlider::handle:horizontal {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #b4b4b4, stop:1 #8f8f8f);
-                border: 1px solid #5c5c5c;
-                width: 90px;
-                margin: -20px 0;
-                border-radius: 8px;
-            }
-            QSlider::groove:horizontal {
-                height: 10px;
-                margin: 0px;
+            QSlider {
+                border: 2px solid #5c5c5c;
+                border-radius: 5px;
+                background-color: #f0f0f0;
             }
         """)
+        
         self.speed_slider.valueChanged.connect(self.on_speed_slider_changed)
         
         self.speed_label = QLabel(f"Speed: {self.speed_slider.value()}")
