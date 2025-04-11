@@ -53,14 +53,17 @@ class CameraManager:
         if camera:
             try:
                 if zoom_speed > 0:
-                    # Use the camera's built-in method for zoom tele (zoom in)
-                    camera.zoom_tele_speed(min(abs(zoom_speed), 7))
+                    # Use direct command for zoom tele (zoom in)
+                    command = bytes([0x81, 0x01, 0x04, 0x07, 0x20 + min(abs(zoom_speed), 7), 0xFF])
+                    self._send_command(camera, command)
                 elif zoom_speed < 0:
-                    # Use the camera's built-in method for zoom wide (zoom out)
-                    camera.zoom_wide_speed(min(abs(zoom_speed), 7))
+                    # Use direct command for zoom wide (zoom out)
+                    command = bytes([0x81, 0x01, 0x04, 0x07, 0x30 + min(abs(zoom_speed), 7), 0xFF])
+                    self._send_command(camera, command)
                 else:
-                    # Use the camera's built-in method for zoom stop
-                    camera.zoom_stop()
+                    # Use direct command for zoom stop
+                    command = bytes([0x81, 0x01, 0x04, 0x07, 0x00, 0xFF])
+                    self._send_command(camera, command)
                 return True
             except Exception as e:
                 self.logger.error(f"Error zooming camera: {str(e)}")
