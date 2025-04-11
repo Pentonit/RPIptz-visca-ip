@@ -15,11 +15,15 @@ class MainWindow(QMainWindow):
         # Set up the main window
         self.setWindowTitle("Camera Controller")
         self.setGeometry(0, 0, 800, 480)
+        # Set window to fullscreen for 800x480 display
+        self.showFullScreen()
         
         # Create central widget and layout
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout(self.central_widget)
+        self.main_layout.setSpacing(5)  # Reduce spacing between widgets
+        self.main_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
         
         # Create tab widget for different screens
         self.tab_widget = QTabWidget()
@@ -40,8 +44,8 @@ class MainWindow(QMainWindow):
         
         # Add exit button at the bottom
         self.exit_button = QPushButton("Exit")
-        self.exit_button.setMinimumHeight(50)
-        self.exit_button.setFont(QFont("Arial", 14))
+        self.exit_button.setMinimumHeight(40)  # Reduced from 50
+        self.exit_button.setFont(QFont("Arial", 12))  # Reduced from 14
         self.exit_button.clicked.connect(self.close)
         self.main_layout.addWidget(self.exit_button)
         
@@ -56,14 +60,17 @@ class MainWindow(QMainWindow):
     def setup_control_tab(self):
         """Set up the control tab with camera selection and controls"""
         layout = QVBoxLayout(self.control_tab)
+        layout.setSpacing(5)  # Reduce spacing
+        layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
         
         # Camera selection
         camera_group = QGroupBox("Camera Selection")
         camera_layout = QHBoxLayout()
+        camera_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
         
         self.camera_selector = QComboBox()
         self.camera_selector.addItems(self.camera_manager.get_camera_list())
-        self.camera_selector.setFont(QFont("Arial", 12))
+        self.camera_selector.setFont(QFont("Arial", 10))  # Reduced from 12
         self.camera_selector.currentIndexChanged.connect(self.on_camera_selected)
         
         camera_layout.addWidget(QLabel("Active Camera:"))
@@ -74,11 +81,12 @@ class MainWindow(QMainWindow):
         # Joystick visualization
         joystick_group = QGroupBox("Joystick Control")
         joystick_layout = QGridLayout()
+        joystick_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
         
         self.pan_tilt_label = QLabel("Pan/Tilt: 0, 0")
-        self.pan_tilt_label.setFont(QFont("Arial", 12))
+        self.pan_tilt_label.setFont(QFont("Arial", 10))  # Reduced from 12
         self.zoom_label = QLabel("Zoom: 0")
-        self.zoom_label.setFont(QFont("Arial", 12))
+        self.zoom_label.setFont(QFont("Arial", 10))  # Reduced from 12
         
         joystick_layout.addWidget(self.pan_tilt_label, 0, 0)
         joystick_layout.addWidget(self.zoom_label, 1, 0)
@@ -89,6 +97,7 @@ class MainWindow(QMainWindow):
         # Zoom control slider
         zoom_group = QGroupBox("Zoom Control")
         zoom_layout = QVBoxLayout()
+        zoom_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
         
         self.zoom_slider = QSlider(Qt.Horizontal)
         self.zoom_slider.setMinimum(-100)
@@ -105,6 +114,8 @@ class MainWindow(QMainWindow):
         # Camera control buttons
         control_group = QGroupBox("Camera Controls")
         control_layout = QGridLayout()
+        control_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
+        control_layout.setSpacing(5)  # Reduce spacing
         
         # Create directional buttons
         self.btn_up = QPushButton("▲")
@@ -113,10 +124,10 @@ class MainWindow(QMainWindow):
         self.btn_right = QPushButton("►")
         self.btn_stop = QPushButton("■")
         
-        # Set minimum size for buttons to make them touch-friendly
+        # Set minimum size for buttons to make them touch-friendly but smaller
         for btn in [self.btn_up, self.btn_down, self.btn_left, self.btn_right, self.btn_stop]:
-            btn.setMinimumSize(80, 80)
-            btn.setFont(QFont("Arial", 16))
+            btn.setMinimumSize(60, 60)  # Reduced from 80x80
+            btn.setFont(QFont("Arial", 14))  # Reduced from 16
         
         # Connect button signals
         self.btn_up.pressed.connect(lambda: self.on_direction_button(0, -1))
@@ -146,14 +157,17 @@ class MainWindow(QMainWindow):
     def setup_config_tab(self):
         """Set up the configuration tab with camera settings"""
         layout = QVBoxLayout(self.config_tab)
+        layout.setSpacing(5)  # Reduce spacing
+        layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
         
         # Camera selection for configuration
         camera_group = QGroupBox("Select Camera to Configure")
         camera_layout = QHBoxLayout()
+        camera_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
         
         self.config_camera_selector = QComboBox()
         self.config_camera_selector.addItems(self.camera_manager.get_camera_list())
-        self.config_camera_selector.setFont(QFont("Arial", 12))
+        self.config_camera_selector.setFont(QFont("Arial", 10))  # Reduced from 12
         self.config_camera_selector.currentIndexChanged.connect(self.on_config_camera_selected)
         
         camera_layout.addWidget(QLabel("Camera:"))
@@ -164,6 +178,7 @@ class MainWindow(QMainWindow):
         # Camera configuration fields
         config_group = QGroupBox("Camera Configuration")
         config_layout = QGridLayout()
+        config_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
         
         # Name field
         config_layout.addWidget(QLabel("Name:"), 0, 0)
@@ -188,8 +203,8 @@ class MainWindow(QMainWindow):
         
         # Save button
         self.save_config_button = QPushButton("Save Configuration")
-        self.save_config_button.setMinimumHeight(50)
-        self.save_config_button.setFont(QFont("Arial", 12))
+        self.save_config_button.setMinimumHeight(40)  # Reduced from 50
+        self.save_config_button.setFont(QFont("Arial", 10))  # Reduced from 12
         self.save_config_button.clicked.connect(self.on_save_config)
         layout.addWidget(self.save_config_button)
         
@@ -269,8 +284,16 @@ class MainWindow(QMainWindow):
         self.pan_tilt_label.setText(f"Pan/Tilt: {x:.2f}, {y:.2f}")
         self.zoom_label.setText(f"Zoom: {zoom:.2f}")
     
-    def closeEvent(self, event):
-        """Handle window close event"""
+    def keyPressEvent(self, event):
+        """Handle key press events"""
+        # Exit fullscreen mode with Escape key
+        if event.key() == Qt.Key_Escape:
+            if self.isFullScreen():
+                self.showNormal()
+            else:
+                self.close()
+        super().keyPressEvent(event)
+        
         # Stop joystick monitoring
         self.joystick_controller.stop_monitoring()
         
