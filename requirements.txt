@@ -1,4 +1,4 @@
-visca-over-ip==1.0.2
+visca-over-ip==0.5.1
 PyQt5==5.15.9
 gpiozero==1.6.2
 PyYAML==6.0
