@@ -464,6 +464,19 @@ class MainWindow(QMainWindow):
         zoom_speed = int(value / 14)  # Scale to VISCA zoom speed range
         self.camera_manager.zoom_camera(zoom_speed)
     
+    def on_camera_button_clicked(self, index):
+        """Handle camera selection in control tab"""
+        # Update button states
+        for i, btn in enumerate(self.camera_buttons):
+            btn.setChecked(i == index)
+        
+        # Update camera buttons in presets tab to match
+        for i, btn in enumerate(self.preset_camera_buttons):
+            btn.setChecked(i == index)
+        
+        # Set the active camera
+        self.camera_manager.set_active_camera(index)
+    
     def update_ui(self):
         """Update UI elements with current values"""
         # Get joystick values
