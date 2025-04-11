@@ -53,17 +53,26 @@ class CameraManager:
         if camera:
             try:
                 if zoom_speed > 0:
-                    # Use direct command for zoom tele (zoom in)
-                    command = bytes([0x81, 0x01, 0x04, 0x07, 0x20 + min(abs(zoom_speed), 7), 0xFF])
-                    self._send_command(camera, command)
+                    # Try using the camera's built-in method for zoom tele
+                    try:
+                        camera.zoom_tele(min(abs(zoom_speed), 7))
+                    except AttributeError:
+                        # If that fails, try the standard method
+                        camera.cmd_cam_zoom_tele()
                 elif zoom_speed < 0:
-                    # Use direct command for zoom wide (zoom out)
-                    command = bytes([0x81, 0x01, 0x04, 0x07, 0x30 + min(abs(zoom_speed), 7), 0xFF])
-                    self._send_command(camera, command)
+                    # Try using the camera's built-in method for zoom wide
+                    try:
+                        camera.zoom_wide(min(abs(zoom_speed), 7))
+                    except AttributeError:
+                        # If that fails, try the standard method
+                        camera.cmd_cam_zoom_wide()
                 else:
-                    # Use direct command for zoom stop
-                    command = bytes([0x81, 0x01, 0x04, 0x07, 0x00, 0xFF])
-                    self._send_command(camera, command)
+                    # Try using the camera's built-in method for zoom stop
+                    try:
+                        camera.zoom_stop()
+                    except AttributeError:
+                        # If that fails, try the standard method
+                        camera.cmd_cam_zoom_stop()
                 return True
             except Exception as e:
                 self.logger.error(f"Error zooming camera: {str(e)}")
@@ -72,8 +81,25 @@ class CameraManager:
     def _send_command(self, camera, command):
         """Send a raw VISCA command to the camera"""
         try:
-            # Use the camera's built-in method to send commands
-            camera.send_packet(command)
+            # Try different methods to send commands
+            try:
+                # Try using the socket directly if it exists
+                if hasattr(camera, '_socket'):
+                    camera._socket.send(command)
+                elif hasattr(camera, 'socket'):
+                    camera.socket.send(command)
+                # Try using a send method if it exists
+                elif hasattr(camera, 'send'):
+                    camera.send(command)
+                elif hasattr(camera, 'send_command'):
+                    camera.send_command(command)
+                else:
+                    # If no method works, log an error
+                    self.logger.error("No method found to send commands to camera")
+                    return False
+            except Exception as e:
+                self.logger.error(f"Error sending command to camera: {str(e)}")
+                return False
             return True
         except Exception as e:
             self.logger.error(f"Error sending command to camera: {str(e)}")
