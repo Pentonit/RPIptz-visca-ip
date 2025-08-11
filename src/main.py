@@ -5,7 +5,7 @@ import yaml
 from PyQt5.QtWidgets import QApplication
 from gui.main_window import MainWindow
 from camera.camera_manager import CameraManager
-from joystick.joystick_controller import JoystickController
+from joystick.controller_manager import ControllerManager
 
 def load_config():
     config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config', 'config.yaml')
@@ -25,6 +25,17 @@ def load_config():
                 'y_pin': 1,  # Analog pin for Y-axis
                 'zoom_pin': 2,  # Analog pin for zoom control
                 'deadzone': 0.1  # Deadzone for joystick
+            },
+            'gamepad': {
+                'mapping': {
+                    'pan_axis': 0,
+                    'tilt_axis': 1,
+                    'zoom_axis': 3,
+                    'invert_pan': False,
+                    'invert_tilt': False,
+                    'invert_zoom': False,
+                    'deadzone': 0.1
+                }
             }
         }
         # Create config directory if it doesn't exist
@@ -44,16 +55,17 @@ def main():
     # Initialize camera manager
     camera_manager = CameraManager(config['cameras'])
     
-    # Initialize joystick controller
-    joystick = JoystickController(
-        config['joystick']['x_pin'],
-        config['joystick']['y_pin'],
-        config['joystick']['zoom_pin'],
-        config['joystick']['deadzone']
-    )
+    # Initialize controller manager
+    controller_manager = ControllerManager(config)
     
     # Initialize main window
-    window = MainWindow(camera_manager, joystick)
+    # Save config helper
+    def save_config():
+        config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config', 'config.yaml')
+        with open(config_path, 'w') as file:
+            yaml.dump(config, file)
+
+    window = MainWindow(camera_manager, controller_manager, config, save_config)
     window.show()
     
     # Start the application

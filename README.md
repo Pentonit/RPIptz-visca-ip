@@ -6,6 +6,7 @@ A touchscreen-based controller for multiple PTZ cameras using VISCA over IP prot
 
 - Control up to 3 PTZ cameras via VISCA over IP
 - Analog joystick support for pan, tilt, and zoom
+- Game controller support (Xbox/PS style via pygame), with selectable device and configurable axis mapping
 - Touch-friendly UI optimized for 800x480 Raspberry Pi displays
 - Camera configuration management
 - On-screen controls for camera movement
@@ -33,10 +34,11 @@ A touchscreen-based controller for multiple PTZ cameras using VISCA over IP prot
 
 `chmod +x run.sh`
 
-4. Connect your hardware:
+4. Connect your hardware (one or both):
 - Connect the MCP3008 to the Raspberry Pi's SPI pins
 - Connect the analog joystick to the MCP3008
 - Connect the touchscreen display
+- Optional: connect a USB/Bluetooth game controller (e.g., Xbox/PS)
 
 5. Configure your cameras:
 - Edit the `config/config.yaml` file to match your camera IP addresses and ports
@@ -46,6 +48,8 @@ A touchscreen-based controller for multiple PTZ cameras using VISCA over IP prot
 
 `./run.sh`
 
+If you use a game controller, open the Controllers tab to select a device and set mapping.
+
 ## Joystick Configuration
 
 The default configuration assumes:
@@ -54,6 +58,25 @@ The default configuration assumes:
 - Zoom control connected to MCP3008 channel 2
 
 You can modify these settings in the `config/config.yaml` file.
+
+## Game Controller Mapping
+
+The default mapping uses left stick for pan/tilt and right stick vertical for zoom. You can change these in the application under the Controllers tab, which will persist to `config/config.yaml` under `gamepad.mapping`.
+
+If running on Raspberry Pi Lite, you may need packages for SDL/pygame:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y libsdl2-2.0-0 libsdl2-image-2.0-0 libsdl2-mixer-2.0-0 libsdl2-ttf-2.0-0
+```
+
+On Raspberry Pi OS with the official 7" touchscreen, ensure Qt uses the EGLFS or KMS backend. If launching from the console without X, set:
+
+```bash
+export QT_QPA_PLATFORM=eglfs
+```
+
+If using a desktop session, omit the above and run normally.
 
 ## License
 

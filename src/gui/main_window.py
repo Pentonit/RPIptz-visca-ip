@@ -1,9 +1,10 @@
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                             QPushButton, QLabel, QComboBox, QTabWidget, 
                             QGridLayout, QLineEdit, QSpinBox, QGroupBox,
-                            QSlider, QMessageBox, QStyle, QProxyStyle)
+                            QSlider, QMessageBox, QStyle, QProxyStyle, QButtonGroup)
 from PyQt5.QtCore import Qt, QTimer, QSize
 from PyQt5.QtGui import QFont
+from .controllers_page import ControllersPage
 
 # Custom slider style for touch screens
 class TouchSliderStyle(QProxyStyle):
@@ -15,16 +16,16 @@ class TouchSliderStyle(QProxyStyle):
             return 50  # Make the slider thicker
         elif metric == QStyle.PM_SliderLength:
             return 80  # Make the handle much longer
-        elif metric == QStyle.PM_SliderControlThickness:
-            return 50  # Make the handle thicker
         return super().pixelMetric(metric, option, widget)
 
 class MainWindow(QMainWindow):
-    def __init__(self, camera_manager, joystick_controller):
+    def __init__(self, camera_manager, controller_manager, config_ref, config_saver):
         super().__init__()
         
         self.camera_manager = camera_manager
-        self.joystick_controller = joystick_controller
+        self.controller_manager = controller_manager
+        self._config_ref = config_ref
+        self._config_saver = config_saver
         
         # Set up the main window
         self.setWindowTitle("Camera Controller")
@@ -36,11 +37,12 @@ class MainWindow(QMainWindow):
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout(self.central_widget)
-        self.main_layout.setSpacing(2)  # Further reduce spacing
-        self.main_layout.setContentsMargins(2, 2, 2, 2)  # Further reduce margins
+        self.main_layout.setSpacing(8)
+        self.main_layout.setContentsMargins(8, 8, 8, 8)
         
         # Create tab widget for different screens
         self.tab_widget = QTabWidget()
+        self.tab_widget.setTabPosition(QTabWidget.South)
         self.main_layout.addWidget(self.tab_widget)
         
         # Create tabs
@@ -48,17 +50,20 @@ class MainWindow(QMainWindow):
         self.config_tab = QWidget()
         self.presets_tab = QWidget()  # New presets tab
         self.system_tab = QWidget()  # New system tab
+        self.controllers_tab = QWidget()  # New controllers tab
         
         self.tab_widget.addTab(self.control_tab, "Control")
         self.tab_widget.addTab(self.presets_tab, "Presets")  # Add presets tab
         self.tab_widget.addTab(self.config_tab, "Configuration")
         self.tab_widget.addTab(self.system_tab, "System")  # Add system tab
+        self.tab_widget.addTab(self.controllers_tab, "Controllers")
         
         # Set up the tabs
         self.setup_control_tab()
         self.setup_presets_tab()
         self.setup_config_tab()
         self.setup_system_tab()  # Setup the new system tab
+        self.setup_controllers_tab()
         
         # Remove the exit button from main layout
         # self.exit_button = QPushButton("Exit")
@@ -68,8 +73,8 @@ class MainWindow(QMainWindow):
         # self.exit_button.clicked.connect(self.close)
         # self.main_layout.addWidget(self.exit_button)
         
-        # Start joystick monitoring
-        self.joystick_controller.start_monitoring(self.on_joystick_movement)
+        # Start controller monitoring with button callback
+        self.controller_manager.start_monitoring(self.on_joystick_movement, self.on_button_action)
         
         # Timer for updating UI
         self.update_timer = QTimer()
@@ -79,21 +84,21 @@ class MainWindow(QMainWindow):
     def setup_control_tab(self):
         """Set up the control tab with camera selection and controls"""
         layout = QVBoxLayout(self.control_tab)
-        layout.setSpacing(2)  # Further reduce spacing
-        layout.setContentsMargins(2, 2, 2, 2)  # Further reduce margins
+        layout.setSpacing(8)
+        layout.setContentsMargins(8, 8, 8, 8)
         
         # Camera selection - replace dropdown with buttons
-        camera_group = QGroupBox("Camera Selection")
+        camera_group = QGroupBox("Camera")
         camera_layout = QHBoxLayout()
-        camera_layout.setContentsMargins(2, 2, 2, 2)  # Reduce margins
+        camera_layout.setContentsMargins(6, 6, 6, 6)
         
         # Create camera selection buttons instead of dropdown
         self.camera_buttons = []
         for i, camera_name in enumerate(self.camera_manager.get_camera_list()):
             btn = QPushButton(camera_name)
             btn.setCheckable(True)
-            btn.setMinimumHeight(40)  # Make buttons taller for touch
-            btn.setFont(QFont("Arial", 10))
+            btn.setMinimumHeight(56)
+            btn.setFont(QFont("Arial", 12, QFont.Bold))
             # Use a lambda with default argument to capture the correct index
             btn.clicked.connect(lambda checked, idx=i: self.on_camera_button_clicked(idx))
             camera_layout.addWidget(btn)
@@ -108,21 +113,21 @@ class MainWindow(QMainWindow):
         
         # Create a horizontal layout for joystick info and camera controls
         controls_layout = QHBoxLayout()
-        controls_layout.setSpacing(2)
+        controls_layout.setSpacing(8)
         
         # Left side: Joystick info and zoom slider
         left_controls = QVBoxLayout()
-        left_controls.setSpacing(2)
+        left_controls.setSpacing(8)
         
         # Joystick visualization
-        joystick_group = QGroupBox("Joystick Control")
+        joystick_group = QGroupBox("Input Values")
         joystick_layout = QGridLayout()
-        joystick_layout.setContentsMargins(2, 2, 2, 2)  # Reduce margins
+        joystick_layout.setContentsMargins(6, 6, 6, 6)
         
         self.pan_tilt_label = QLabel("Pan/Tilt: 0, 0")
-        self.pan_tilt_label.setFont(QFont("Arial", 10))
+        self.pan_tilt_label.setFont(QFont("Arial", 12))
         self.zoom_label = QLabel("Zoom: 0")
-        self.zoom_label.setFont(QFont("Arial", 10))
+        self.zoom_label.setFont(QFont("Arial", 12))
         
         joystick_layout.addWidget(self.pan_tilt_label, 0, 0)
         joystick_layout.addWidget(self.zoom_label, 1, 0)
@@ -131,9 +136,9 @@ class MainWindow(QMainWindow):
         left_controls.addWidget(joystick_group)
         
         # Zoom control slider - make it larger for touch
-        zoom_group = QGroupBox("Zoom Control")
+        zoom_group = QGroupBox("Zoom")
         zoom_layout = QVBoxLayout()
-        zoom_layout.setContentsMargins(2, 2, 2, 2)  # Reduce margins
+        zoom_layout.setContentsMargins(6, 6, 6, 6)
         
         self.zoom_slider = QSlider(Qt.Horizontal)
         self.zoom_slider.setMinimum(-100)
@@ -141,7 +146,7 @@ class MainWindow(QMainWindow):
         self.zoom_slider.setValue(0)
         self.zoom_slider.setTickPosition(QSlider.TicksBelow)
         self.zoom_slider.setTickInterval(10)
-        self.zoom_slider.setMinimumHeight(70)  # Make slider even taller
+        self.zoom_slider.setMinimumHeight(80)
         
         # Apply the touch-friendly style
         touch_style = TouchSliderStyle()
@@ -158,43 +163,50 @@ class MainWindow(QMainWindow):
         
         self.zoom_slider.valueChanged.connect(self.on_zoom_slider_changed)
         
+        # Zoom +/- buttons with press-and-hold behavior
+        zoom_buttons_row = QHBoxLayout()
+        self.zoom_out_btn = QPushButton("−")
+        self.zoom_out_btn.setMinimumSize(80, 80)
+        self.zoom_out_btn.setAutoRepeat(True)
+        self.zoom_out_btn.setAutoRepeatInterval(120)
+        self.zoom_out_btn.pressed.connect(lambda: self.camera_manager.zoom_camera(-5))
+        self.zoom_out_btn.released.connect(lambda: self.camera_manager.zoom_camera(0))
+
+        self.zoom_in_btn = QPushButton("+")
+        self.zoom_in_btn.setMinimumSize(80, 80)
+        self.zoom_in_btn.setAutoRepeat(True)
+        self.zoom_in_btn.setAutoRepeatInterval(120)
+        self.zoom_in_btn.pressed.connect(lambda: self.camera_manager.zoom_camera(5))
+        self.zoom_in_btn.released.connect(lambda: self.camera_manager.zoom_camera(0))
+
+        zoom_buttons_row.addWidget(self.zoom_out_btn)
+        zoom_buttons_row.addStretch()
+        zoom_buttons_row.addWidget(self.zoom_in_btn)
+
         zoom_layout.addWidget(self.zoom_slider)
+        zoom_layout.addLayout(zoom_buttons_row)
         zoom_group.setLayout(zoom_layout)
         left_controls.addWidget(zoom_group)
         
         # Add PTZ speed control slider
+        # PTZ speed segmented buttons
         speed_group = QGroupBox("PTZ Speed")
-        speed_layout = QVBoxLayout()
-        speed_layout.setContentsMargins(2, 2, 2, 2)  # Reduce margins
-        
-        self.speed_slider = QSlider(Qt.Horizontal)
-        self.speed_slider.setMinimum(1)
-        self.speed_slider.setMaximum(24)  # VISCA max speed is 24
-        self.speed_slider.setValue(12)  # Default to middle speed
-        self.speed_slider.setTickPosition(QSlider.TicksBelow)
-        self.speed_slider.setTickInterval(4)
-        self.speed_slider.setMinimumHeight(70)  # Make slider even taller
-        
-        # Apply the touch-friendly style
-        self.speed_slider.setStyle(TouchSliderStyle())
-        
-        # Make the slider more visible with a border
-        self.speed_slider.setStyleSheet("""
-            QSlider {
-                border: 2px solid #5c5c5c;
-                border-radius: 5px;
-                background-color: #f0f0f0;
-            }
-        """)
-        
-        self.speed_slider.valueChanged.connect(self.on_speed_slider_changed)
-        
-        self.speed_label = QLabel(f"Speed: {self.speed_slider.value()}")
-        self.speed_label.setFont(QFont("Arial", 10))
-        self.speed_label.setAlignment(Qt.AlignCenter)
-        
-        speed_layout.addWidget(self.speed_label)
-        speed_layout.addWidget(self.speed_slider)
+        speed_layout = QHBoxLayout()
+        speed_layout.setContentsMargins(6, 6, 6, 6)
+        self.speed_buttons = QButtonGroup(self)
+        self.speed_map = {"Slow": 8, "Medium": 16, "Fast": 24}
+        for label, val in self.speed_map.items():
+            b = QPushButton(label)
+            b.setCheckable(True)
+            b.setMinimumHeight(56)
+            b.setFont(QFont("Arial", 12))
+            speed_layout.addWidget(b)
+            self.speed_buttons.addButton(b, val)
+        # Default Medium
+        for btn in self.speed_buttons.buttons():
+            if self.speed_buttons.id(btn) == 16:
+                btn.setChecked(True)
+                break
         speed_group.setLayout(speed_layout)
         left_controls.addWidget(speed_group)
         
@@ -203,8 +215,8 @@ class MainWindow(QMainWindow):
         # Right side: Camera control buttons
         control_group = QGroupBox("Camera Controls")
         control_layout = QGridLayout()
-        control_layout.setContentsMargins(2, 2, 2, 2)  # Reduce margins
-        control_layout.setSpacing(2)  # Reduce spacing
+        control_layout.setContentsMargins(6, 6, 6, 6)
+        control_layout.setSpacing(8)
         
         # Create directional buttons
         self.btn_up = QPushButton("▲")
@@ -213,11 +225,10 @@ class MainWindow(QMainWindow):
         self.btn_right = QPushButton("►")
         self.btn_stop = QPushButton("■")
         
-        # Set minimum size for buttons - make them smaller
+        # Set minimum size for buttons - large for touch
         for btn in [self.btn_up, self.btn_down, self.btn_left, self.btn_right, self.btn_stop]:
-            btn.setMinimumSize(50, 50)  # Further reduced from 60x60
-            btn.setMaximumSize(50, 50)  # Add maximum size
-            btn.setFont(QFont("Arial", 12))  # Reduced from 14
+            btn.setMinimumSize(90, 90)
+            btn.setFont(QFont("Arial", 18))
         
         # Connect button signals
         self.btn_up.pressed.connect(lambda: self.on_direction_button(0, -1))
@@ -245,6 +256,21 @@ class MainWindow(QMainWindow):
         controls_layout.addWidget(control_group, 1)  # Give right side less space
         
         layout.addLayout(controls_layout)
+
+        # Quick Presets row (Recall 1-6)
+        quick_presets = QGroupBox("Quick Presets")
+        qp_layout = QHBoxLayout()
+        qp_layout.setContentsMargins(6, 6, 6, 6)
+        self.quick_preset_buttons = []
+        for i in range(6):
+            pbtn = QPushButton(f"{i+1}")
+            pbtn.setMinimumHeight(56)
+            pbtn.setFont(QFont("Arial", 12, QFont.Bold))
+            pbtn.clicked.connect(lambda checked, preset_num=i+1: self.on_quick_preset_recall(preset_num))
+            qp_layout.addWidget(pbtn)
+            self.quick_preset_buttons.append(pbtn)
+        quick_presets.setLayout(qp_layout)
+        layout.addWidget(quick_presets)
     
     def setup_presets_tab(self):
         """Set up the presets tab with preset buttons"""
@@ -416,14 +442,23 @@ class MainWindow(QMainWindow):
             self.config_camera_selector.clear()
             self.config_camera_selector.addItems(self.camera_manager.get_camera_list())
             
+            # Persist to config and save file
+            try:
+                if 0 <= index < len(self._config_ref.get('cameras', [])):
+                    self._config_ref['cameras'][index]['name'] = name
+                    self._config_ref['cameras'][index]['ip'] = ip
+                    self._config_ref['cameras'][index]['port'] = int(port)
+                    self._config_saver()
+            except Exception:
+                pass
             QMessageBox.information(self, "Success", "Camera configuration saved successfully.")
         else:
             QMessageBox.warning(self, "Error", "Failed to save camera configuration.")
     
     def on_joystick_movement(self, x, y, zoom):
         """Handle joystick movement"""
-        # Get the current speed setting from the slider
-        speed = self.speed_slider.value() if hasattr(self, 'speed_slider') else 24
+        # Get the current speed setting
+        speed = self.get_speed()
         
         # Scale values to appropriate ranges for camera control
         pan_speed = int(x * speed)  # Use the speed setting
@@ -445,8 +480,8 @@ class MainWindow(QMainWindow):
     
     def on_direction_button(self, pan, tilt):
         """Handle direction button press/release"""
-        # Get the current speed setting from the slider
-        speed = self.speed_slider.value() if hasattr(self, 'speed_slider') else 24
+        # Get the current speed setting
+        speed = self.get_speed()
         
         # Scale to appropriate ranges for camera control using the speed setting
         pan_speed = int(pan * speed)  # VISCA pan speed range: -24 to 24
@@ -463,6 +498,22 @@ class MainWindow(QMainWindow):
         """Handle zoom slider change"""
         zoom_speed = int(value / 14)  # Scale to VISCA zoom speed range
         self.camera_manager.zoom_camera(zoom_speed)
+
+    def on_button_action(self, action: str, pressed: bool):
+        if action == "zoom_in":
+            self.camera_manager.zoom_camera(5 if pressed else 0)
+        elif action == "zoom_out":
+            self.camera_manager.zoom_camera(-5 if pressed else 0)
+        elif action == "stop":
+            self.camera_manager.stop_camera()
+        elif action == "preset_store_toggle":
+            if pressed and hasattr(self, 'store_mode_button'):
+                self.store_mode_button.setChecked(not self.store_mode_button.isChecked())
+    
+    def get_speed(self):
+        """Return current PTZ speed from segmented buttons."""
+        checked_id = self.speed_buttons.checkedId() if hasattr(self, 'speed_buttons') else -1
+        return checked_id if checked_id > 0 else 24
     
     def on_camera_button_clicked(self, index):
         """Handle camera selection in control tab"""
@@ -480,7 +531,7 @@ class MainWindow(QMainWindow):
     def update_ui(self):
         """Update UI elements with current values"""
         # Get joystick values
-        x, y, zoom = self.joystick_controller.get_values()
+        x, y, zoom = self.controller_manager.get_values()
         
         # Update labels
         self.pan_tilt_label.setText(f"Pan/Tilt: {x:.2f}, {y:.2f}")
@@ -495,14 +546,17 @@ class MainWindow(QMainWindow):
             else:
                 self.close()
         super().keyPressEvent(event)
-        
-        # Stop joystick monitoring
-        self.joystick_controller.stop_monitoring()
-        
-        # Stop camera movements
-        self.camera_manager.stop_camera()
-        
-        # Accept the close event
+
+    def closeEvent(self, event):
+        # Stop controller monitoring and camera movement on close
+        try:
+            self.controller_manager.stop_monitoring()
+        except Exception:
+            pass
+        try:
+            self.camera_manager.stop_camera()
+        except Exception:
+            pass
         event.accept()
 
     def setup_system_tab(self):
@@ -547,3 +601,37 @@ class MainWindow(QMainWindow):
         
         layout.addLayout(button_layout)
         layout.addStretch()  # Push everything to the top
+
+    def setup_controllers_tab(self):
+        # Embed the ControllersPage widget
+        self.controllers_page = ControllersPage(
+            controller_manager=self.controller_manager,
+            config_saver_callback=self._config_saver,
+        )
+        # Replace the empty tab widget with the page's layout
+        tab_layout = QVBoxLayout(self.controllers_tab)
+        tab_layout.setContentsMargins(0, 0, 0, 0)
+        tab_layout.addWidget(self.controllers_page)
+    
+    def on_quick_preset_recall(self, preset_num: int):
+        self.camera_manager.recall_preset(preset_num)
+    
+    def apply_styles(self):
+        # Dark, high-contrast theme suitable for touch
+        self.setStyleSheet(
+            """
+            QWidget { background-color: #1e1e1e; color: #f0f0f0; }
+            QGroupBox { border: 1px solid #3a3a3a; border-radius: 8px; margin-top: 12px; }
+            QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 4px; color: #cccccc; }
+            QPushButton { background-color: #2d2d2d; border: 1px solid #555; border-radius: 8px; padding: 10px; }
+            QPushButton:hover { background-color: #383838; }
+            QPushButton:pressed { background-color: #444; }
+            QPushButton:checked { background-color: #007acc; border-color: #007acc; color: white; }
+            QTabBar::tab { background: #2d2d2d; color: #f0f0f0; padding: 12px 18px; margin: 2px; border-radius: 6px; }
+            QTabBar::tab:selected { background: #007acc; }
+            QLabel { font-size: 14px; }
+            QComboBox, QLineEdit, QSpinBox { background-color: #2a2a2a; border: 1px solid #555; border-radius: 6px; padding: 6px; }
+            QSlider::groove:horizontal { height: 14px; background: #2a2a2a; border: 1px solid #555; border-radius: 7px; }
+            QSlider::handle:horizontal { background: #007acc; border: 1px solid #007acc; width: 28px; margin: -8px 0; border-radius: 14px; }
+            """
+        )

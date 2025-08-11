@@ -13,3 +13,17 @@ joystick:
   y_pin: 1
   zoom_pin: 2
   deadzone: 0.1
+gamepad:
+  mapping:
+    pan_axis: 0
+    tilt_axis: 1
+    zoom_axis: 3
+    invert_pan: false
+    invert_tilt: false
+    invert_zoom: false
+    deadzone: 0.1
+    buttons:
+      zoom_in: 0
+      zoom_out: 1
+      stop: 2
+      preset_store_toggle: 3
