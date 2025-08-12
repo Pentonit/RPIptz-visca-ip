@@ -32,6 +32,8 @@ class MainWindow(QMainWindow):
         self.setGeometry(0, 0, 800, 480)
         # Set window to fullscreen for 800x480 display
         self.showFullScreen()
+        # Ensure there is space for tabs by adding top margin
+        self.main_layout.setContentsMargins(8, 16, 8, 8)
         
         # Create central widget and layout
         self.central_widget = QWidget()
@@ -42,7 +44,11 @@ class MainWindow(QMainWindow):
         
         # Create tab widget for different screens
         self.tab_widget = QTabWidget()
-        self.tab_widget.setTabPosition(QTabWidget.South)
+        self.tab_widget.setTabPosition(QTabWidget.North)
+        try:
+            self.tab_widget.setTabBarAutoHide(False)
+        except Exception:
+            pass
         self.main_layout.addWidget(self.tab_widget)
         
         # Create tabs
@@ -53,10 +59,10 @@ class MainWindow(QMainWindow):
         self.controllers_tab = QWidget()  # New controllers tab
         
         self.tab_widget.addTab(self.control_tab, "Control")
-        self.tab_widget.addTab(self.presets_tab, "Presets")  # Add presets tab
-        self.tab_widget.addTab(self.config_tab, "Configuration")
-        self.tab_widget.addTab(self.system_tab, "System")  # Add system tab
         self.tab_widget.addTab(self.controllers_tab, "Controllers")
+        self.tab_widget.addTab(self.presets_tab, "Presets")  # Add presets tab
+        self.tab_widget.addTab(self.config_tab, "Config")
+        self.tab_widget.addTab(self.system_tab, "System")  # Add system tab
         
         # Set up the tabs
         self.setup_control_tab()
@@ -64,6 +70,12 @@ class MainWindow(QMainWindow):
         self.setup_config_tab()
         self.setup_system_tab()  # Setup the new system tab
         self.setup_controllers_tab()
+
+        # Apply a touch-friendly, high-contrast style and ensure tabs are visible
+        try:
+            self.apply_styles()
+        except Exception:
+            pass
         
         # Remove the exit button from main layout
         # self.exit_button = QPushButton("Exit")
@@ -617,7 +629,7 @@ class MainWindow(QMainWindow):
         self.camera_manager.recall_preset(preset_num)
     
     def apply_styles(self):
-        # Dark, high-contrast theme suitable for touch
+        # Dark, high-contrast theme suitable for touch with clearly visible tabs
         self.setStyleSheet(
             """
             QWidget { background-color: #1e1e1e; color: #f0f0f0; }
@@ -627,8 +639,9 @@ class MainWindow(QMainWindow):
             QPushButton:hover { background-color: #383838; }
             QPushButton:pressed { background-color: #444; }
             QPushButton:checked { background-color: #007acc; border-color: #007acc; color: white; }
-            QTabBar::tab { background: #2d2d2d; color: #f0f0f0; padding: 12px 18px; margin: 2px; border-radius: 6px; }
-            QTabBar::tab:selected { background: #007acc; }
+            QTabBar::tab { background: #2d2d2d; color: #f0f0f0; padding: 14px 22px; margin: 4px; border-radius: 8px; font-size: 14px; }
+            QTabBar::tab:selected { background: #007acc; color: #ffffff; }
+            QTabWidget::pane { border-top: 2px solid #444; }
             QLabel { font-size: 14px; }
             QComboBox, QLineEdit, QSpinBox { background-color: #2a2a2a; border: 1px solid #555; border-radius: 6px; padding: 6px; }
             QSlider::groove:horizontal { height: 14px; background: #2a2a2a; border: 1px solid #555; border-radius: 7px; }

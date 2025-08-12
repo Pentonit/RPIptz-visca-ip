@@ -52,27 +52,34 @@ class CameraManager:
         camera = self.get_active_camera()
         if camera:
             try:
+                speed = max(0, min(abs(int(zoom_speed)), 7))
                 if zoom_speed > 0:
-                    # Try using the camera's built-in method for zoom tele
+                    # Zoom tele (in)
                     try:
-                        camera.zoom_tele(min(abs(zoom_speed), 7))
+                        try:
+                            camera.zoom_tele(speed)
+                        except TypeError:
+                            camera.zoom_tele()
                     except AttributeError:
-                        # If that fails, try the standard method
-                        camera.cmd_cam_zoom_tele()
+                        # Raw VISCA: Zoom tele variable speed: 81 01 04 07 2p FF
+                        self._send_command(camera, bytes([0x81, 0x01, 0x04, 0x07, 0x20 | speed, 0xFF]))
                 elif zoom_speed < 0:
-                    # Try using the camera's built-in method for zoom wide
+                    # Zoom wide (out)
                     try:
-                        camera.zoom_wide(min(abs(zoom_speed), 7))
+                        try:
+                            camera.zoom_wide(speed)
+                        except TypeError:
+                            camera.zoom_wide()
                     except AttributeError:
-                        # If that fails, try the standard method
-                        camera.cmd_cam_zoom_wide()
+                        # Raw VISCA: Zoom wide variable speed: 81 01 04 07 3p FF
+                        self._send_command(camera, bytes([0x81, 0x01, 0x04, 0x07, 0x30 | speed, 0xFF]))
                 else:
-                    # Try using the camera's built-in method for zoom stop
+                    # Zoom stop
                     try:
                         camera.zoom_stop()
                     except AttributeError:
-                        # If that fails, try the standard method
-                        camera.cmd_cam_zoom_stop()
+                        # Raw VISCA: Zoom stop: 81 01 04 07 00 FF
+                        self._send_command(camera, bytes([0x81, 0x01, 0x04, 0x07, 0x00, 0xFF]))
                 return True
             except Exception as e:
                 self.logger.error(f"Error zooming camera: {str(e)}")
@@ -110,8 +117,18 @@ class CameraManager:
         camera = self.get_active_camera()
         if camera:
             try:
-                camera.pantilt_stop()
-                camera.zoom_stop()
+                # Prefer pantilt(0,0) which most libs treat as stop
+                try:
+                    camera.pantilt(0, 0)
+                except AttributeError:
+                    # Raw VISCA: PanTilt stop (vv=00 ww=00, dir codes 03 03)
+                    self._send_command(camera, bytes([0x81, 0x01, 0x06, 0x01, 0x00, 0x00, 0x03, 0x03, 0xFF]))
+
+                try:
+                    camera.zoom_stop()
+                except AttributeError:
+                    # Raw VISCA: Zoom stop
+                    self._send_command(camera, bytes([0x81, 0x01, 0x04, 0x07, 0x00, 0xFF]))
                 return True
             except Exception as e:
                 self.logger.error(f"Error stopping camera: {str(e)}")
