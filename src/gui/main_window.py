@@ -380,20 +380,29 @@ class MainWindow(QMainWindow):
         layout.setSpacing(5)  # Reduce spacing
         layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
         
-        # Camera selection for configuration
+        # Camera selection for configuration (buttons instead of dropdown)
         camera_group = QGroupBox("Select Camera to Configure")
         camera_group.setFlat(True)
         camera_layout = QHBoxLayout()
-        camera_layout.setContentsMargins(2, 2, 2, 2)  # Compact margins
+        camera_layout.setContentsMargins(2, 2, 2, 2)
         camera_layout.setSpacing(4)
         
-        self.config_camera_selector = QComboBox()
-        self.config_camera_selector.addItems(self.camera_manager.get_camera_list())
-        self.config_camera_selector.setFont(QFont("Arial", 10))
-        self.config_camera_selector.currentIndexChanged.connect(self.on_config_camera_selected)
+        self.config_camera_buttons = []
+        for i, camera_name in enumerate(self.camera_manager.get_camera_list()):
+            btn = QPushButton(camera_name)
+            btn.setCheckable(True)
+            btn.setMinimumHeight(40)
+            btn.setFont(QFont("Arial", 10))
+            btn.clicked.connect(lambda checked, idx=i: self.on_config_camera_button_clicked(idx))
+            camera_layout.addWidget(btn)
+            self.config_camera_buttons.append(btn)
         
-        camera_layout.addWidget(QLabel("Camera:"))
-        camera_layout.addWidget(self.config_camera_selector)
+        if self.config_camera_buttons:
+            self.config_camera_buttons[0].setChecked(True)
+            self.config_selected_index = 0
+        else:
+            self.config_selected_index = 0
+        
         camera_group.setLayout(camera_layout)
         layout.addWidget(camera_group)
         
@@ -431,7 +440,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.save_config_button)
         
         # Initialize with first camera
-        self.on_config_camera_selected(0)
+        self.on_config_camera_selected(getattr(self, 'config_selected_index', 0))
     
     def on_config_camera_selected(self, index):
         """Handle configuration camera selection change"""
@@ -440,10 +449,17 @@ class MainWindow(QMainWindow):
             self.camera_name_edit.setText(camera.name)
             self.camera_ip_edit.setText(camera.ip)
             self.camera_port_edit.setValue(camera.port)
+            self.config_selected_index = index
+
+    def on_config_camera_button_clicked(self, index):
+        # Update button checks
+        for i, btn in enumerate(getattr(self, 'config_camera_buttons', [])):
+            btn.setChecked(i == index)
+        self.on_config_camera_selected(index)
     
     def on_save_config(self):
         """Save camera configuration"""
-        index = self.config_camera_selector.currentIndex()
+        index = getattr(self, 'config_selected_index', 0)
         name = self.camera_name_edit.text()
         ip = self.camera_ip_edit.text()
         port = self.camera_port_edit.value()
@@ -452,10 +468,10 @@ class MainWindow(QMainWindow):
             # Update camera button text
             if 0 <= index < len(self.camera_buttons):
                 self.camera_buttons[index].setText(name)
-            
-            # Update config dropdown
-            self.config_camera_selector.clear()
-            self.config_camera_selector.addItems(self.camera_manager.get_camera_list())
+            if hasattr(self, 'preset_camera_buttons') and 0 <= index < len(self.preset_camera_buttons):
+                self.preset_camera_buttons[index].setText(name)
+            if hasattr(self, 'config_camera_buttons') and 0 <= index < len(self.config_camera_buttons):
+                self.config_camera_buttons[index].setText(name)
             
             # Persist to config and save file
             try:

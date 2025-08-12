@@ -20,6 +20,8 @@ class ControllerManager:
         self._active: Optional[object] = None
         self._active_type: Optional[str] = None  # "gamepad"
         self._active_gamepad_index: Optional[int] = None
+        self._last_callback: Optional[Callable[[float, float, float], None]] = None
+        self._last_button_callback: Optional[Callable[[str, bool], None]] = None
 
     # Discovery
     def list_gamepads(self) -> List[Dict[str, str]]:
@@ -66,6 +68,12 @@ class ControllerManager:
         self._active = GamepadController(device_index, mapping)
         self._active_type = "gamepad"
         self._active_gamepad_index = device_index
+        # If monitoring callbacks were previously set, restart monitoring with the new device
+        if self._last_callback is not None:
+            try:
+                self._active.start_monitoring(self._last_callback, self._last_button_callback)
+            except TypeError:
+                self._active.start_monitoring(self._last_callback)
 
     def deactivate(self) -> None:
         if self._active and hasattr(self._active, "stop_monitoring"):
@@ -79,6 +87,9 @@ class ControllerManager:
 
     # Unified interface
     def start_monitoring(self, callback: Callable[[float, float, float], None], button_callback: Optional[Callable[[str, bool], None]] = None) -> None:
+        # Remember callbacks so we can reattach after device changes
+        self._last_callback = callback
+        self._last_button_callback = button_callback
         # Prefer first available gamepad; do not auto-activate analog
         if self._active is None and pygame is not None:
             pads = self.list_gamepads()

@@ -11,7 +11,20 @@ def load_config():
     config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config', 'config.yaml')
     if os.path.exists(config_path):
         with open(config_path, 'r') as file:
-            return yaml.safe_load(file)
+            cfg = yaml.safe_load(file) or {}
+        # One-time migration: update default camera 1 IP if it's still the old default
+        try:
+            if (
+                isinstance(cfg.get('cameras'), list)
+                and len(cfg['cameras']) > 0
+                and cfg['cameras'][0].get('ip') == '192.168.1.100'
+            ):
+                cfg['cameras'][0]['ip'] = '192.168.0.101'
+                with open(config_path, 'w') as f:
+                    yaml.dump(cfg, f)
+        except Exception:
+            pass
+        return cfg
     else:
         # Default configuration
         default_config = {
