@@ -16,7 +16,7 @@ def load_config():
         # Default configuration
         default_config = {
             'cameras': [
-                {'name': 'Camera 1', 'ip': '192.168.1.100', 'port': 52381},
+                {'name': 'Camera 1', 'ip': '192.168.0.101', 'port': 52381},
                 {'name': 'Camera 2', 'ip': '192.168.1.101', 'port': 52381},
                 {'name': 'Camera 3', 'ip': '192.168.1.102', 'port': 52381}
             ],

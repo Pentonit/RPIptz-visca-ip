@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QGroupBox,
-    QComboBox, QCheckBox, QDoubleSpinBox, QGridLayout, QSpinBox, QDialog
+    QComboBox, QCheckBox, QDoubleSpinBox, QGridLayout, QSpinBox, QDialog,
+    QSlider
 )
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFont
@@ -83,6 +84,8 @@ class ControllersPage(QWidget):
         self.apply_button.clicked.connect(self._apply_mapping)
         self.test_input_button = QPushButton("Test Controller Inputs")
         self.test_input_button.clicked.connect(self._open_test_dialog)
+        self.deadzone_button = QPushButton("Set Deadzone…")
+        self.deadzone_button.clicked.connect(self._open_deadzone_dialog)
 
         # Layout mapping widgets
         # Two-row compact layout to avoid overflow on 480px height
@@ -114,6 +117,7 @@ class ControllersPage(QWidget):
         r = 3
         map_layout.addWidget(QLabel("Btn Preset Toggle"), r, 0)
         map_layout.addWidget(self.preset_store_toggle_button, r, 1)
+        map_layout.addWidget(self.deadzone_button, r, 4)
         map_layout.addWidget(self.test_input_button, r, 5)
 
         map_group.setLayout(map_layout)
@@ -150,6 +154,13 @@ class ControllersPage(QWidget):
     def _open_test_dialog(self):
         dlg = ControllerTestDialog(self.controller_manager, self)
         dlg.exec_()
+
+    def _open_deadzone_dialog(self):
+        dlg = DeadzoneDialog(current=self.deadzone_spin.value(), parent=self)
+        if dlg.exec_():
+            value = dlg.value()
+            self.deadzone_spin.setValue(value)
+            self._apply_mapping()
 
     def _populate_from_config(self):
         mapping = self.controller_manager.get_gamepad_mapping()
@@ -274,5 +285,37 @@ class ControllerTestDialog(QDialog):
             self.buttons_label.setText("Buttons (pressed): " + (", ".join(buttons) if buttons else "none"))
         except Exception:
             pass
+
+
+class DeadzoneDialog(QDialog):
+    def __init__(self, current: float, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Set Deadzone (all axes)")
+        self.setMinimumSize(400, 120)
+        layout = QVBoxLayout(self)
+        self.label = QLabel("Deadzone: {:.2f}".format(current))
+        layout.addWidget(self.label)
+        self.slider = QSlider(Qt.Horizontal)
+        self.slider.setMinimum(0)
+        self.slider.setMaximum(50)  # 0.00 - 0.50
+        self.slider.setSingleStep(1)
+        self.slider.setValue(int(current * 100))
+        self.slider.valueChanged.connect(self._on_change)
+        layout.addWidget(self.slider)
+        # OK/Cancel buttons
+        btn_row = QHBoxLayout()
+        ok_btn = QPushButton("OK")
+        cancel_btn = QPushButton("Cancel")
+        ok_btn.clicked.connect(self.accept)
+        cancel_btn.clicked.connect(self.reject)
+        btn_row.addWidget(ok_btn)
+        btn_row.addWidget(cancel_btn)
+        layout.addLayout(btn_row)
+
+    def _on_change(self, v: int):
+        self.label.setText("Deadzone: {:.2f}".format(v / 100.0))
+
+    def value(self) -> float:
+        return self.slider.value() / 100.0
 
 
