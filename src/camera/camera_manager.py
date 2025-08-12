@@ -101,7 +101,31 @@ class CameraManager:
                 self.logger.error(f"Error zooming camera: {str(e)}")
         return False
 
-    # Removed absolute zoom-ratio helpers to follow variable-speed behavior per request
+    # OBSBOT Tail 2: Support absolute zoom ratio (VISCA: 81 01 04 47 0z 0z 0z 0z FF)
+    # where zzzz are decimal digits (BCD-coded nibbles). Ratio = (1..12)*1000 per vendor sheet.
+    def set_zoom_ratio(self, ratio_value: int) -> bool:
+        camera = self.get_active_camera()
+        if not camera:
+            return False
+        try:
+            ratio_value = int(ratio_value)
+            # Clamp vendor-stated range; fall back to 4-digit max 9999 if needed
+            if ratio_value < 1000:
+                ratio_value = 1000
+            if ratio_value > 12000:
+                ratio_value = 12000
+            # Convert to four BCD-coded bytes using the last 4 decimal digits
+            d = f"{ratio_value:05d}"[-4:]
+            b3 = 0x00 | int(d[0])
+            b2 = 0x00 | int(d[1])
+            b1 = 0x00 | int(d[2])
+            b0 = 0x00 | int(d[3])
+            cmd = bytes([0x81, 0x01, 0x04, 0x47, b3, b2, b1, b0, 0xFF])
+            self._send_command(camera, cmd)
+            return True
+        except Exception as e:
+            self.logger.error(f"Error setting zoom ratio: {e}")
+            return False
 
     def _query_position(self, camera):
         """Attempt to query current pan/tilt/zoom from the camera if supported.

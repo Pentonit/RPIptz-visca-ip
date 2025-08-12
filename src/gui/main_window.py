@@ -537,8 +537,17 @@ class MainWindow(QMainWindow):
     
     def on_zoom_slider_changed(self, value):
         """Handle zoom slider change"""
-        zoom_speed = int(value / 14)
-        self.camera_manager.zoom_camera(zoom_speed)
+        # Map slider -100..100 to absolute zoom ratio range 1000..12000
+        # Use mid-point 0 as no change (ignore), only act when moved significantly
+        try:
+            # Convert to 0..1 then to ratio
+            t = (value + 100) / 200.0
+            ratio = int(1000 + t * (12000 - 1000))
+            self.camera_manager.set_zoom_ratio(ratio)
+        except Exception:
+            # Fallback to speed-based
+            zoom_speed = int(value / 14)
+            self.camera_manager.zoom_camera(zoom_speed)
 
     def on_button_action(self, action: str, pressed: bool):
         if action == "zoom_in":
