@@ -530,8 +530,9 @@ class MainWindow(QMainWindow):
     def _start_move_hold(self, dx: int, dy: int):
         self._move_hold_dx = dx
         self._move_hold_dy = dy
+        # Start continuous hold with shorter interval for smoother motion
         self._tick_move_hold()
-        self._move_hold_timer.start(120)
+        self._move_hold_timer.start(60)
 
     def _tick_move_hold(self):
         self.on_direction_button(self._move_hold_dx, self._move_hold_dy)
@@ -543,7 +544,7 @@ class MainWindow(QMainWindow):
     def _start_zoom_hold(self, direction: int):
         self._zoom_hold_dir = direction
         self._tick_zoom_hold()
-        self._zoom_hold_timer.start(120)
+        self._zoom_hold_timer.start(80)
 
     def _tick_zoom_hold(self):
         # Map hold to step zoom toward absolute ratio target repeatedly
