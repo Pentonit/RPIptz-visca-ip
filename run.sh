@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 # Check if virtual environment exists, if not create it
 if [ ! -d "venv" ]; then
     echo "Creating virtual environment..."
-    python3 -m venv venv --system-site-packages
+    python3 -m venv venv
 fi
 source venv/bin/activate
 
@@ -13,6 +13,8 @@ export PIP_EXTRA_INDEX_URL="https://www.piwheels.org/simple"
 
 # Install base requirements first (without PyQt5)
 pip install --upgrade pip
+## Workaround for broken Send2Trash metadata on some RPi/Debian images
+pip install --upgrade "Send2Trash>=1.8.3" || true
 pip install -r requirements.txt
 
 # Try to install a PyQt5 wheel. Accept slightly older versions if latest isn't available.
@@ -42,6 +44,9 @@ if [ "$PYQT_INSTALLED" -ne 1 ]; then
   if command -v apt-get >/dev/null 2>&1; then
     sudo apt-get update
     sudo apt-get install -y python3-pyqt5
+    # Make the system dist-packages visible to this venv at runtime only
+    VENV_SITE=$(python3 -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')
+    echo "/usr/lib/python3/dist-packages" > "$VENV_SITE/_dist_packages.pth"
   else
     echo "apt-get not available. Please install PyQt5 manually."
     exit 1
@@ -52,4 +57,15 @@ fi
 # Ensure pygame can initialize without a window manager
 export SDL_VIDEODRIVER=dummy
 export SDL_AUDIODRIVER=dummy
+
+# Prefer a Qt platform plugin that matches the session: wayland, xcb, or eglfs
+if [ -n "${WAYLAND_DISPLAY:-}" ]; then
+  export QT_QPA_PLATFORM=wayland
+elif [ -n "${DISPLAY:-}" ]; then
+  export QT_QPA_PLATFORM=xcb
+else
+  # No compositor; use eglfs for fullscreen on console if supported
+  export QT_QPA_PLATFORM=${QT_QPA_PLATFORM:-eglfs}
+fi
+
 python3 src/main.py

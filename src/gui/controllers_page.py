@@ -127,6 +127,19 @@ class ControllersPage(QWidget):
         self.timer.timeout.connect(self._update_live)
         self.timer.start(100)
 
+    def _apply_mapping(self):
+        mapping = self._collect_mapping()
+        # Persist mapping in controller manager and save to config file
+        try:
+            self.controller_manager.set_gamepad_mapping(mapping)
+        except Exception:
+            pass
+        try:
+            if callable(self.config_saver_callback):
+                self.config_saver_callback()
+        except Exception:
+            pass
+
     def _populate_from_config(self):
         mapping = self.controller_manager.get_gamepad_mapping()
         self.pan_axis_combo.setCurrentIndex(int(mapping.get("pan_axis", 0)))
