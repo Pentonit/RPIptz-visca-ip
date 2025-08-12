@@ -50,6 +50,12 @@ A touchscreen-based controller for multiple PTZ cameras using VISCA over IP prot
 
 If you use a game controller, open the Controllers tab to select a device and set mapping.
 
+### Notes on PyQt5 installation on Raspberry Pi
+
+- This project uses PyQt5. Building PyQt5 from source on Raspberry Pi can be extremely slow or hang.
+- The `run.sh` script is set up to prefer pre-built wheels from `piwheels.org` and will try several compatible `PyQt5` versions. If no wheel is available, it falls back to installing `python3-pyqt5` via `apt`.
+- If you're on a 64-bit Raspberry Pi OS where piwheels doesn't provide a matching wheel, the apt fallback should still work.
+
 ## Joystick Configuration
 
 The default configuration assumes:
