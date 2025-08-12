@@ -92,14 +92,9 @@ class MainWindow(QMainWindow):
         self.update_timer.timeout.connect(self.update_ui)
         self.update_timer.start(100)  # Update every 100ms
 
-        # Hold timers for continuous actions
-        self._move_hold_timer = QTimer(self)
-        self._move_hold_timer.timeout.connect(self._tick_move_hold)
+        # State for press-and-hold (single-shot on press, explicit stop on release)
         self._move_hold_dx = 0
         self._move_hold_dy = 0
-
-        self._zoom_hold_timer = QTimer(self)
-        self._zoom_hold_timer.timeout.connect(self._tick_zoom_hold)
         self._zoom_hold_dir = 0
     
     def setup_control_tab(self):
@@ -251,17 +246,17 @@ class MainWindow(QMainWindow):
             btn.setFont(QFont("Arial", 16))
         
         # Connect button signals
-        self.btn_up.pressed.connect(lambda: self._start_move_hold(0, -1))
-        self.btn_up.released.connect(self._stop_move_hold)
+        self.btn_up.pressed.connect(lambda: self.on_direction_button(0, -1))
+        self.btn_up.released.connect(lambda: self.on_direction_button(0, 0))
         
-        self.btn_down.pressed.connect(lambda: self._start_move_hold(0, 1))
-        self.btn_down.released.connect(self._stop_move_hold)
+        self.btn_down.pressed.connect(lambda: self.on_direction_button(0, 1))
+        self.btn_down.released.connect(lambda: self.on_direction_button(0, 0))
         
-        self.btn_left.pressed.connect(lambda: self._start_move_hold(-1, 0))
-        self.btn_left.released.connect(self._stop_move_hold)
+        self.btn_left.pressed.connect(lambda: self.on_direction_button(-1, 0))
+        self.btn_left.released.connect(lambda: self.on_direction_button(0, 0))
         
-        self.btn_right.pressed.connect(lambda: self._start_move_hold(1, 0))
-        self.btn_right.released.connect(self._stop_move_hold)
+        self.btn_right.pressed.connect(lambda: self.on_direction_button(1, 0))
+        self.btn_right.released.connect(lambda: self.on_direction_button(0, 0))
         
         self.btn_stop.clicked.connect(self.on_stop_button)
         
@@ -527,33 +522,14 @@ class MainWindow(QMainWindow):
         # Move camera
         self.camera_manager.move_camera(pan_speed, tilt_speed)
 
-    def _start_move_hold(self, dx: int, dy: int):
-        self._move_hold_dx = dx
-        self._move_hold_dy = dy
-        # Start continuous hold with shorter interval for smoother motion
-        self._tick_move_hold()
-        self._move_hold_timer.start(60)
-
-    def _tick_move_hold(self):
-        self.on_direction_button(self._move_hold_dx, self._move_hold_dy)
-
-    def _stop_move_hold(self):
-        self._move_hold_timer.stop()
-        self.on_direction_button(0, 0)
-
     def _start_zoom_hold(self, direction: int):
-        self._zoom_hold_dir = direction
-        self._tick_zoom_hold()
-        self._zoom_hold_timer.start(80)
-
-    def _tick_zoom_hold(self):
-        # Map hold to step zoom toward absolute ratio target repeatedly
-        step = 1 if self._zoom_hold_dir > 0 else -1 if self._zoom_hold_dir < 0 else 0
-        self.camera_manager.zoom_camera(step)
+        # Single-shot start; camera should continue until stop is sent
+        speed = 5 if direction > 0 else -5 if direction < 0 else 0
+        self.camera_manager.zoom_camera(speed)
 
     def _stop_zoom_hold(self):
-        self._zoom_hold_timer.stop()
-        # No explicit stop needed for absolute zoom ratios
+        # Explicit stop
+        self.camera_manager.zoom_camera(0)
     
     def on_stop_button(self):
         """Handle stop button press"""

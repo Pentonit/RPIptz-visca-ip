@@ -82,11 +82,15 @@ class CameraManager:
         camera = self.get_active_camera()
         if camera:
             try:
-                p = max(0, min(7, abs(int(zoom_speed))))
-                if zoom_speed > 0:
+                raw = int(zoom_speed)
+                p = max(0, min(7, abs(raw)))
+                if raw > 0:
+                    # Ensure minimum speed of 1 when non-zero
+                    p = max(1, p)
                     # Zoom in (tele) variable speed: 81 01 04 07 2p FF
                     self._send_command(camera, bytes([0x81, 0x01, 0x04, 0x07, 0x20 | p, 0xFF]))
-                elif zoom_speed < 0:
+                elif raw < 0:
+                    p = max(1, p)
                     # Zoom out (wide) variable speed: 81 01 04 07 3p FF
                     self._send_command(camera, bytes([0x81, 0x01, 0x04, 0x07, 0x30 | p, 0xFF]))
                 else:
@@ -145,12 +149,14 @@ class CameraManager:
         # Prefer library/public methods first
         try:
             if hasattr(camera, 'send_command') and callable(getattr(camera, 'send_command')):
+                self.logger.debug(f"send_command via library: {command.hex(' ')}")
                 camera.send_command(command)
                 return True
         except Exception:
             pass
         try:
             if hasattr(camera, 'send') and callable(getattr(camera, 'send')):
+                self.logger.debug(f"send via library: {command.hex(' ')}")
                 camera.send(command)
                 return True
         except Exception:
@@ -158,16 +164,30 @@ class CameraManager:
         try:
             # Some libs expose a 'write' or similar
             if hasattr(camera, 'write') and callable(getattr(camera, 'write')):
+                self.logger.debug(f"write via library: {command.hex(' ')}")
                 camera.write(command)
                 return True
         except Exception:
             pass
+
+        # Try raw TCP (some cameras expect TCP VISCA-over-IP without extra header)
+        try:
+            ip = getattr(camera, 'ip', None)
+            port = getattr(camera, 'port', None)
+            if ip and port:
+                self.logger.debug(f"TCP send to {ip}:{port} payload: {command.hex(' ')}")
+                with socket.create_connection((ip, int(port)), timeout=0.8) as s:
+                    s.sendall(command)
+                return True
+        except Exception as e:
+            self.logger.error(f"TCP send failed: {e}")
 
         # Fallback to raw UDP (may not work for all cameras if a transport header is required)
         try:
             ip = getattr(camera, 'ip', None)
             port = getattr(camera, 'port', None)
             if ip and port:
+                self.logger.debug(f"UDP send to {ip}:{port} payload: {command.hex(' ')}")
                 with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                     s.settimeout(0.5)
                     s.sendto(command, (ip, int(port)))
@@ -178,9 +198,11 @@ class CameraManager:
         # As a last resort, try private sockets
         try:
             if hasattr(camera, '_socket'):
+                self.logger.debug(f"private _socket send: {command.hex(' ')}")
                 camera._socket.send(command)
                 return True
             if hasattr(camera, 'socket'):
+                self.logger.debug(f"private socket send: {command.hex(' ')}")
                 camera.socket.send(command)
                 return True
         except Exception as e:
