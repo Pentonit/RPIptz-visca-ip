@@ -1,5 +1,6 @@
 from visca_over_ip import Camera
 import logging
+import socket
 
 class CameraManager:
     def __init__(self, camera_configs):
@@ -132,29 +133,35 @@ class CameraManager:
             
     def _send_command(self, camera, command):
         """Send a raw VISCA command to the camera"""
+        # Preferred: send via UDP directly to the camera IP/port to avoid relying on private API
         try:
-            # Try different methods to send commands
-            try:
-                # Try using the socket directly if it exists
-                if hasattr(camera, '_socket'):
-                    camera._socket.send(command)
-                elif hasattr(camera, 'socket'):
-                    camera.socket.send(command)
-                # Try using a send method if it exists
-                elif hasattr(camera, 'send'):
-                    camera.send(command)
-                elif hasattr(camera, 'send_command'):
-                    camera.send_command(command)
-                else:
-                    # If no method works, log an error
-                    self.logger.error("No method found to send commands to camera")
-                    return False
-            except Exception as e:
-                self.logger.error(f"Error sending command to camera: {str(e)}")
-                return False
-            return True
+            ip = getattr(camera, 'ip', None)
+            port = getattr(camera, 'port', None)
+            if ip and port:
+                with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                    s.settimeout(0.5)
+                    s.sendto(command, (ip, int(port)))
+                return True
         except Exception as e:
-            self.logger.error(f"Error sending command to camera: {str(e)}")
+            self.logger.error(f"UDP send failed: {e}")
+        # Fallback: try library internals
+        try:
+            if hasattr(camera, '_socket'):
+                camera._socket.send(command)
+                return True
+            if hasattr(camera, 'socket'):
+                camera.socket.send(command)
+                return True
+            if hasattr(camera, 'send'):
+                camera.send(command)
+                return True
+            if hasattr(camera, 'send_command'):
+                camera.send_command(command)
+                return True
+            self.logger.error("No method found to send commands to camera")
+            return False
+        except Exception as e:
+            self.logger.error(f"Error sending command to camera via fallback: {str(e)}")
             return False
     
     def stop_camera(self):
@@ -206,9 +213,15 @@ class CameraManager:
             # Send VISCA command to store preset
             # Preset command format: 8x 01 04 3F 01 pp FF
             # where pp is preset number (0x00 to 0xFF)
-            command = bytes([0x81, 0x01, 0x04, 0x3F, 0x01, preset_num - 1, 0xFF])
-            self._send_command(camera, command)
-            return True
+            # Try with 1-based first (common), then 0-based
+            for code in (preset_num, preset_num - 1):
+                try:
+                    command = bytes([0x81, 0x01, 0x04, 0x3F, 0x01, max(0, code) & 0xFF, 0xFF])
+                    if self._send_command(camera, command):
+                        return True
+                except Exception:
+                    pass
+            return False
         except Exception as e:
             print(f"Error storing preset: {e}")
             return False
@@ -223,9 +236,15 @@ class CameraManager:
             # Send VISCA command to recall preset
             # Preset recall command format: 8x 01 04 3F 02 pp FF
             # where pp is preset number (0x00 to 0xFF)
-            command = bytes([0x81, 0x01, 0x04, 0x3F, 0x02, preset_num - 1, 0xFF])
-            self._send_command(camera, command)
-            return True
+            # Try with 1-based first (common), then 0-based
+            for code in (preset_num, preset_num - 1):
+                try:
+                    command = bytes([0x81, 0x01, 0x04, 0x3F, 0x02, max(0, code) & 0xFF, 0xFF])
+                    if self._send_command(camera, command):
+                        return True
+                except Exception:
+                    pass
+            return False
         except Exception as e:
             print(f"Error recalling preset: {e}")
             return False

@@ -642,7 +642,7 @@ class MainWindow(QMainWindow):
             QPushButton:hover { background-color: #383838; }
             QPushButton:pressed { background-color: #444; }
             QPushButton:checked { background-color: #007acc; border-color: #007acc; color: white; }
-            QTabBar::tab { background: #2d2d2d; color: #f0f0f0; padding: 14px 22px; margin: 4px; border-radius: 8px; font-size: 14px; }
+            QTabBar::tab { background: #2d2d2d; color: #f0f0f0; padding: 10px 16px; margin: 4px; border-radius: 8px; font-size: 12px; min-height: 28px; }
             QTabBar::tab:selected { background: #007acc; color: #ffffff; }
             QTabWidget::pane { border-top: 2px solid #444; }
             QLabel { font-size: 14px; }
