@@ -496,13 +496,11 @@ class MainWindow(QMainWindow):
         tilt_speed = int(-y * speed)  # Use the speed setting
         zoom_speed = int(zoom * 7)  # VISCA zoom speed range: 0 to 7
         
-        # Move camera
-        if pan_speed != 0 or tilt_speed != 0:
-            self.camera_manager.move_camera(pan_speed, tilt_speed)
+        # Move camera (send stop when both are zero)
+        self.camera_manager.move_camera(pan_speed, tilt_speed)
         
-        # Zoom camera
-        if zoom_speed != 0:
-            self.camera_manager.zoom_camera(zoom_speed)
+        # Zoom camera (send stop when zero)
+        self.camera_manager.zoom_camera(zoom_speed)
     
     def on_speed_slider_changed(self, value):
         """Handle speed slider change"""

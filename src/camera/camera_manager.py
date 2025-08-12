@@ -48,7 +48,15 @@ class CameraManager:
         camera = self.get_active_camera()
         if camera:
             try:
-                camera.pantilt(pan_speed, tilt_speed)
+                # If both speeds are zero, issue a stop explicitly to avoid drift
+                if pan_speed == 0 and tilt_speed == 0:
+                    try:
+                        camera.pantilt(0, 0)
+                    except Exception:
+                        # Raw VISCA stop for safety
+                        self._send_command(camera, bytes([0x81, 0x01, 0x06, 0x01, 0x00, 0x00, 0x03, 0x03, 0xFF]))
+                else:
+                    camera.pantilt(pan_speed, tilt_speed)
                 # Update last known pan/tilt when moving
                 try:
                     self._last_known_positions[self.active_camera_index] = (
@@ -77,8 +85,12 @@ class CameraManager:
                         except TypeError:
                             camera.zoom_tele()
                     except AttributeError:
-                        # Raw VISCA: Zoom tele variable speed: 81 01 04 07 2p FF
-                        self._send_command(camera, bytes([0x81, 0x01, 0x04, 0x07, 0x20 | speed, 0xFF]))
+                        # Raw VISCA: Zoom tele variable speed: 81 01 04 07 2p FF (p=0..7)
+                        # Some cameras only accept p=1..7; treat 0 as stop
+                        if speed == 0:
+                            self._send_command(camera, bytes([0x81, 0x01, 0x04, 0x07, 0x00, 0xFF]))
+                        else:
+                            self._send_command(camera, bytes([0x81, 0x01, 0x04, 0x07, 0x20 | speed, 0xFF]))
                 elif zoom_speed < 0:
                     # Zoom wide (out)
                     try:
@@ -87,8 +99,11 @@ class CameraManager:
                         except TypeError:
                             camera.zoom_wide()
                     except AttributeError:
-                        # Raw VISCA: Zoom wide variable speed: 81 01 04 07 3p FF
-                        self._send_command(camera, bytes([0x81, 0x01, 0x04, 0x07, 0x30 | speed, 0xFF]))
+                        # Raw VISCA: Zoom wide variable speed: 81 01 04 07 3p FF (p=0..7)
+                        if speed == 0:
+                            self._send_command(camera, bytes([0x81, 0x01, 0x04, 0x07, 0x00, 0xFF]))
+                        else:
+                            self._send_command(camera, bytes([0x81, 0x01, 0x04, 0x07, 0x30 | speed, 0xFF]))
                 else:
                     # Zoom stop
                     try:
