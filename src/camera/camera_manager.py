@@ -8,6 +8,7 @@ class CameraManager:
         self.active_camera_index = 0
         self.logger = logging.getLogger(__name__)
         self._last_known_positions = {}  # index -> (pan, tilt, zoom)
+        self._last_zoom_ratio = {}  # index -> int ratio (1000..12000)
         
         # Initialize cameras from config
         for config in camera_configs:
@@ -72,49 +73,59 @@ class CameraManager:
         return False
     
     def zoom_camera(self, zoom_speed):
-        """Zoom the active camera with the given speed"""
+        """Adjust zoom using absolute VISCA zoom-ratio command.
+
+        zoom_speed > 0 increases zoom; < 0 decreases; 0 leaves unchanged.
+        """
         camera = self.get_active_camera()
         if camera:
             try:
-                speed = max(0, min(abs(int(zoom_speed)), 7))
-                if zoom_speed > 0:
-                    # Zoom tele (in)
-                    try:
-                        try:
-                            camera.zoom_tele(speed)
-                        except TypeError:
-                            camera.zoom_tele()
-                    except AttributeError:
-                        # Raw VISCA: Zoom tele variable speed: 81 01 04 07 2p FF (p=0..7)
-                        # Some cameras only accept p=1..7; treat 0 as stop
-                        if speed == 0:
-                            self._send_command(camera, bytes([0x81, 0x01, 0x04, 0x07, 0x00, 0xFF]))
-                        else:
-                            self._send_command(camera, bytes([0x81, 0x01, 0x04, 0x07, 0x20 | speed, 0xFF]))
-                elif zoom_speed < 0:
-                    # Zoom wide (out)
-                    try:
-                        try:
-                            camera.zoom_wide(speed)
-                        except TypeError:
-                            camera.zoom_wide()
-                    except AttributeError:
-                        # Raw VISCA: Zoom wide variable speed: 81 01 04 07 3p FF (p=0..7)
-                        if speed == 0:
-                            self._send_command(camera, bytes([0x81, 0x01, 0x04, 0x07, 0x00, 0xFF]))
-                        else:
-                            self._send_command(camera, bytes([0x81, 0x01, 0x04, 0x07, 0x30 | speed, 0xFF]))
-                else:
-                    # Zoom stop
-                    try:
-                        camera.zoom_stop()
-                    except AttributeError:
-                        # Raw VISCA: Zoom stop: 81 01 04 07 00 FF
-                        self._send_command(camera, bytes([0x81, 0x01, 0x04, 0x07, 0x00, 0xFF]))
+                # Determine step size and compute target ratio
+                idx = self.active_camera_index
+                current = self._last_zoom_ratio.get(idx)
+                if current is None:
+                    current = 1000  # default minimal zoom if unknown
+                if zoom_speed == 0:
+                    # No change requested
+                    return True
+                # Map speed -7..7 to delta in ratio; use 150 per step
+                step = int(max(-7, min(7, int(zoom_speed))) * 150)
+                target = max(1000, min(12000, current + step))
+                if target != current:
+                    self._set_zoom_ratio(camera, idx, target)
                 return True
             except Exception as e:
                 self.logger.error(f"Error zooming camera: {str(e)}")
         return False
+
+    def set_zoom_ratio(self, ratio_value: int) -> bool:
+        """Public method to set absolute zoom-ratio directly (1000..12000)."""
+        camera = self.get_active_camera()
+        if not camera:
+            return False
+        idx = self.active_camera_index
+        try:
+            target = max(1000, min(12000, int(ratio_value)))
+            self._set_zoom_ratio(camera, idx, target)
+            return True
+        except Exception as e:
+            self.logger.error(f"Error setting zoom ratio: {e}")
+            return False
+
+    def _set_zoom_ratio(self, camera, index: int, ratio_value: int) -> None:
+        """Send VISCA absolute zoom command 81 01 04 47 0z 0z 0z 0z FF.
+        ratio_value is (1-12)*1000 in decimal (1000..12000).
+        """
+        # Convert decimal ratio to 4 hex digits
+        value = int(ratio_value)
+        value = max(0, min(0xFFFF, value))
+        n3 = (value >> 12) & 0xF
+        n2 = (value >> 8) & 0xF
+        n1 = (value >> 4) & 0xF
+        n0 = value & 0xF
+        cmd = bytes([0x81, 0x01, 0x04, 0x47, 0x00 | n3, 0x00 | n2, 0x00 | n1, 0x00 | n0, 0xFF])
+        self._send_command(camera, cmd)
+        self._last_zoom_ratio[index] = ratio_value
 
     def _query_position(self, camera):
         """Attempt to query current pan/tilt/zoom from the camera if supported.
@@ -143,6 +154,13 @@ class CameraManager:
         pos = self._query_position(camera)
         if pos is not None:
             self._last_known_positions[self.active_camera_index] = pos
+            # If zoom element provided, try to cache numeric ratio if compatible
+            try:
+                z = pos[2]
+                if isinstance(z, (int, float)):
+                    self._last_zoom_ratio[self.active_camera_index] = int(max(1000, min(12000, z)))
+            except Exception:
+                pass
             return True
         return False
             

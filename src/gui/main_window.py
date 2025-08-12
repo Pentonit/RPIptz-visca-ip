@@ -91,6 +91,16 @@ class MainWindow(QMainWindow):
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self.update_ui)
         self.update_timer.start(100)  # Update every 100ms
+
+        # Hold timers for continuous actions
+        self._move_hold_timer = QTimer(self)
+        self._move_hold_timer.timeout.connect(self._tick_move_hold)
+        self._move_hold_dx = 0
+        self._move_hold_dy = 0
+
+        self._zoom_hold_timer = QTimer(self)
+        self._zoom_hold_timer.timeout.connect(self._tick_zoom_hold)
+        self._zoom_hold_dir = 0
     
     def setup_control_tab(self):
         """Set up the control tab with camera selection and controls"""
@@ -182,17 +192,15 @@ class MainWindow(QMainWindow):
         # Zoom +/- buttons at either end of the slider
         self.zoom_out_btn = QPushButton("−")
         self.zoom_out_btn.setMinimumSize(44, 44)
-        self.zoom_out_btn.setAutoRepeat(True)
-        self.zoom_out_btn.setAutoRepeatInterval(120)
-        self.zoom_out_btn.pressed.connect(lambda: self.camera_manager.zoom_camera(-5))
-        self.zoom_out_btn.released.connect(lambda: self.camera_manager.zoom_camera(0))
+        self.zoom_out_btn.setAutoRepeat(False)
+        self.zoom_out_btn.pressed.connect(lambda: self._start_zoom_hold(-1))
+        self.zoom_out_btn.released.connect(self._stop_zoom_hold)
 
         self.zoom_in_btn = QPushButton("+")
         self.zoom_in_btn.setMinimumSize(44, 44)
-        self.zoom_in_btn.setAutoRepeat(True)
-        self.zoom_in_btn.setAutoRepeatInterval(120)
-        self.zoom_in_btn.pressed.connect(lambda: self.camera_manager.zoom_camera(5))
-        self.zoom_in_btn.released.connect(lambda: self.camera_manager.zoom_camera(0))
+        self.zoom_in_btn.setAutoRepeat(False)
+        self.zoom_in_btn.pressed.connect(lambda: self._start_zoom_hold(1))
+        self.zoom_in_btn.released.connect(self._stop_zoom_hold)
 
         zoom_layout.addWidget(self.zoom_out_btn)
         zoom_layout.addWidget(self.zoom_slider, 1)
@@ -243,17 +251,17 @@ class MainWindow(QMainWindow):
             btn.setFont(QFont("Arial", 16))
         
         # Connect button signals
-        self.btn_up.pressed.connect(lambda: self.on_direction_button(0, -1))
-        self.btn_up.released.connect(lambda: self.on_direction_button(0, 0))
+        self.btn_up.pressed.connect(lambda: self._start_move_hold(0, -1))
+        self.btn_up.released.connect(self._stop_move_hold)
         
-        self.btn_down.pressed.connect(lambda: self.on_direction_button(0, 1))
-        self.btn_down.released.connect(lambda: self.on_direction_button(0, 0))
+        self.btn_down.pressed.connect(lambda: self._start_move_hold(0, 1))
+        self.btn_down.released.connect(self._stop_move_hold)
         
-        self.btn_left.pressed.connect(lambda: self.on_direction_button(-1, 0))
-        self.btn_left.released.connect(lambda: self.on_direction_button(0, 0))
+        self.btn_left.pressed.connect(lambda: self._start_move_hold(-1, 0))
+        self.btn_left.released.connect(self._stop_move_hold)
         
-        self.btn_right.pressed.connect(lambda: self.on_direction_button(1, 0))
-        self.btn_right.released.connect(lambda: self.on_direction_button(0, 0))
+        self.btn_right.pressed.connect(lambda: self._start_move_hold(1, 0))
+        self.btn_right.released.connect(self._stop_move_hold)
         
         self.btn_stop.clicked.connect(self.on_stop_button)
         
@@ -518,6 +526,33 @@ class MainWindow(QMainWindow):
         
         # Move camera
         self.camera_manager.move_camera(pan_speed, tilt_speed)
+
+    def _start_move_hold(self, dx: int, dy: int):
+        self._move_hold_dx = dx
+        self._move_hold_dy = dy
+        self._tick_move_hold()
+        self._move_hold_timer.start(120)
+
+    def _tick_move_hold(self):
+        self.on_direction_button(self._move_hold_dx, self._move_hold_dy)
+
+    def _stop_move_hold(self):
+        self._move_hold_timer.stop()
+        self.on_direction_button(0, 0)
+
+    def _start_zoom_hold(self, direction: int):
+        self._zoom_hold_dir = direction
+        self._tick_zoom_hold()
+        self._zoom_hold_timer.start(120)
+
+    def _tick_zoom_hold(self):
+        # Map hold to step zoom toward absolute ratio target repeatedly
+        step = 1 if self._zoom_hold_dir > 0 else -1 if self._zoom_hold_dir < 0 else 0
+        self.camera_manager.zoom_camera(step)
+
+    def _stop_zoom_hold(self):
+        self._zoom_hold_timer.stop()
+        # No explicit stop needed for absolute zoom ratios
     
     def on_stop_button(self):
         """Handle stop button press"""
@@ -525,7 +560,7 @@ class MainWindow(QMainWindow):
     
     def on_zoom_slider_changed(self, value):
         """Handle zoom slider change"""
-        zoom_speed = int(value / 14)  # Scale to VISCA zoom speed range
+        zoom_speed = int(value / 14)
         self.camera_manager.zoom_camera(zoom_speed)
 
     def on_button_action(self, action: str, pressed: bool):
