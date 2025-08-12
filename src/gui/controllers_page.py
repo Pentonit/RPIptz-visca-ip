@@ -1,9 +1,13 @@
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QGroupBox,
-    QComboBox, QCheckBox, QDoubleSpinBox, QGridLayout, QSpinBox
+    QComboBox, QCheckBox, QDoubleSpinBox, QGridLayout, QSpinBox, QDialog
 )
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFont
+try:
+    import pygame
+except Exception:
+    pygame = None
 
 
 class ControllersPage(QWidget):
@@ -77,6 +81,8 @@ class ControllersPage(QWidget):
         # Apply/Save
         self.apply_button = QPushButton("Apply Mapping")
         self.apply_button.clicked.connect(self._apply_mapping)
+        self.test_input_button = QPushButton("Test Controller Inputs")
+        self.test_input_button.clicked.connect(self._open_test_dialog)
 
         # Layout mapping widgets
         # Two-row compact layout to avoid overflow on 480px height
@@ -104,10 +110,11 @@ class ControllersPage(QWidget):
         map_layout.addWidget(self.zoom_out_button, r, 3)
         map_layout.addWidget(QLabel("Btn Stop"), r, 4)
         map_layout.addWidget(self.stop_button, r, 5)
-        # Row 3 - Preset toggle alone if needed
+        # Row 3 - Preset toggle and test dialog button
         r = 3
         map_layout.addWidget(QLabel("Btn Preset Toggle"), r, 0)
         map_layout.addWidget(self.preset_store_toggle_button, r, 1)
+        map_layout.addWidget(self.test_input_button, r, 5)
 
         map_group.setLayout(map_layout)
         layout.addWidget(map_group)
@@ -139,6 +146,10 @@ class ControllersPage(QWidget):
                 self.config_saver_callback()
         except Exception:
             pass
+
+    def _open_test_dialog(self):
+        dlg = ControllerTestDialog(self.controller_manager, self)
+        dlg.exec_()
 
     def _populate_from_config(self):
         mapping = self.controller_manager.get_gamepad_mapping()
@@ -193,5 +204,75 @@ class ControllersPage(QWidget):
     def _update_live(self):
         pan, tilt, zoom = self.controller_manager.get_values()
         self.live_label.setText(f"Live: pan={pan:.2f} tilt={tilt:.2f} zoom={zoom:.2f}")
+
+
+class ControllerTestDialog(QDialog):
+    def __init__(self, controller_manager, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Controller Input Test")
+        self.setMinimumSize(400, 300)
+
+        layout = QVBoxLayout(self)
+        self.status_label = QLabel("Monitoring controller events…")
+        self.axes_label = QLabel("Axes: []")
+        self.buttons_label = QLabel("Buttons: []")
+        layout.addWidget(self.status_label)
+        layout.addWidget(self.axes_label)
+        layout.addWidget(self.buttons_label)
+
+        self._timer = QTimer(self)
+        self._timer.timeout.connect(self._poll)
+        self._timer.start(50)
+
+        self._joystick = None
+        self._init_joystick()
+
+    def _init_joystick(self):
+        if pygame is None:
+            self.status_label.setText("pygame not available. Install pygame.")
+            return
+        try:
+            if not pygame.get_init():
+                pygame.init()
+            if not pygame.joystick.get_init():
+                pygame.joystick.init()
+            count = pygame.joystick.get_count()
+            if count == 0:
+                self.status_label.setText("No controllers detected.")
+                return
+            self._joystick = pygame.joystick.Joystick(0)
+            self._joystick.init()
+            name = self._joystick.get_name()
+            self.status_label.setText(f"Monitoring: {name}")
+        except Exception as e:
+            self.status_label.setText(f"Init error: {e}")
+
+    def _poll(self):
+        if pygame is None or self._joystick is None:
+            return
+        try:
+            pygame.event.pump()
+            num_axes = self._joystick.get_numaxes()
+            axes = []
+            for i in range(num_axes):
+                try:
+                    v = self._joystick.get_axis(i)
+                except Exception:
+                    v = 0.0
+                axes.append(f"{i}:{v:+.2f}")
+            self.axes_label.setText("Axes: " + ", ".join(axes))
+
+            num_buttons = self._joystick.get_numbuttons()
+            buttons = []
+            for i in range(num_buttons):
+                try:
+                    b = self._joystick.get_button(i)
+                except Exception:
+                    b = 0
+                if b:
+                    buttons.append(str(i))
+            self.buttons_label.setText("Buttons (pressed): " + (", ".join(buttons) if buttons else "none"))
+        except Exception:
+            pass
 
 
