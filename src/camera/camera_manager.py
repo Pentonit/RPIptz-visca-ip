@@ -6,6 +6,7 @@ class CameraManager:
         self.cameras = []
         self.active_camera_index = 0
         self.logger = logging.getLogger(__name__)
+        self._last_known_positions = {}  # index -> (pan, tilt, zoom)
         
         # Initialize cameras from config
         for config in camera_configs:
@@ -29,6 +30,11 @@ class CameraManager:
         """Set the active camera by index"""
         if 0 <= index < len(self.cameras):
             self.active_camera_index = index
+            # Try to sync to current position of camera upon activation
+            try:
+                self.sync_active_camera_position()
+            except Exception:
+                pass
             return True
         return False
     
@@ -42,6 +48,15 @@ class CameraManager:
         if camera:
             try:
                 camera.pantilt(pan_speed, tilt_speed)
+                # Update last known pan/tilt when moving
+                try:
+                    self._last_known_positions[self.active_camera_index] = (
+                        self._last_known_positions.get(self.active_camera_index, (0, 0, 0))[0],
+                        self._last_known_positions.get(self.active_camera_index, (0, 0, 0))[1],
+                        self._last_known_positions.get(self.active_camera_index, (0, 0, 0))[2],
+                    )
+                except Exception:
+                    pass
                 return True
             except Exception as e:
                 self.logger.error(f"Error moving camera: {str(e)}")
@@ -83,6 +98,36 @@ class CameraManager:
                 return True
             except Exception as e:
                 self.logger.error(f"Error zooming camera: {str(e)}")
+        return False
+
+    def _query_position(self, camera):
+        """Attempt to query current pan/tilt/zoom from the camera if supported.
+        Returns a tuple (pan, tilt, zoom) in whatever units the library returns,
+        or None if not supported.
+        """
+        # Try common methods present in various libraries
+        try:
+            if hasattr(camera, 'get_position'):
+                pos = camera.get_position()
+                # Expect dict or tuple
+                if isinstance(pos, dict):
+                    return pos.get('pan'), pos.get('tilt'), pos.get('zoom')
+                if isinstance(pos, (list, tuple)) and len(pos) >= 3:
+                    return pos[0], pos[1], pos[2]
+        except Exception:
+            pass
+        # Raw VISCA inquiry could be implemented here if needed
+        return None
+
+    def sync_active_camera_position(self):
+        """Fetch current camera position and store as last known so UI starts at that state."""
+        camera = self.get_active_camera()
+        if not camera:
+            return False
+        pos = self._query_position(camera)
+        if pos is not None:
+            self._last_known_positions[self.active_camera_index] = pos
+            return True
         return False
             
     def _send_command(self, camera, command):

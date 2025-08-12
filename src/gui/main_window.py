@@ -84,7 +84,7 @@ class MainWindow(QMainWindow):
         # self.exit_button.clicked.connect(self.close)
         # self.main_layout.addWidget(self.exit_button)
         
-        # Start controller monitoring with button callback
+        # Start controller monitoring with button callback (external controllers only)
         self.controller_manager.start_monitoring(self.on_joystick_movement, self.on_button_action)
         
         # Timer for updating UI

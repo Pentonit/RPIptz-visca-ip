@@ -66,6 +66,11 @@ def main():
             yaml.dump(config, file)
 
     window = MainWindow(camera_manager, controller_manager, config, save_config)
+    # Ensure camera starts from its current position on connect
+    try:
+        camera_manager.sync_active_camera_position()
+    except Exception:
+        pass
     window.show()
     
     # Start the application

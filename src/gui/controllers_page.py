@@ -28,17 +28,15 @@ class ControllersPage(QWidget):
         self.gamepad_combo = QComboBox()
         self.refresh_button = QPushButton("Refresh")
         self.activate_gamepad_button = QPushButton("Activate Gamepad")
-        self.activate_analog_button = QPushButton("Use Analog Joystick")
 
         self.refresh_button.clicked.connect(self._refresh_gamepads)
         self.activate_gamepad_button.clicked.connect(self._activate_selected_gamepad)
-        self.activate_analog_button.clicked.connect(self._activate_analog)
+        
 
         gp_layout.addWidget(QLabel("Device:"))
         gp_layout.addWidget(self.gamepad_combo)
         gp_layout.addWidget(self.refresh_button)
         gp_layout.addWidget(self.activate_gamepad_button)
-        gp_layout.addWidget(self.activate_analog_button)
         gp_group.setLayout(gp_layout)
         layout.addWidget(gp_group)
 
@@ -173,8 +171,7 @@ class ControllersPage(QWidget):
         self.controller_manager.set_gamepad_mapping(mapping)
         self.config_saver_callback()
 
-    def _activate_analog(self):
-        self.controller_manager.activate_analog()
+    
 
     def _collect_mapping(self):
         return {

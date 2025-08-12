@@ -5,22 +5,20 @@ try:
 except ImportError:
     pygame = None
 
-from .joystick_controller import JoystickController
 from .gamepad_controller import GamepadController
 
 
 class ControllerManager:
-    """Manages multiple input controller types and exposes a unified interface.
-
+    """Manages external game controllers and exposes a unified interface.
+    
     Supports:
-    - Analog joystick via MCP3008 (JoystickController)
     - Game controllers via pygame (GamepadController)
     """
 
     def __init__(self, config: Dict):
         self._config = config
         self._active: Optional[object] = None
-        self._active_type: Optional[str] = None  # "analog" or "gamepad"
+        self._active_type: Optional[str] = None  # "gamepad"
         self._active_gamepad_index: Optional[int] = None
 
     # Discovery
@@ -63,24 +61,6 @@ class ControllerManager:
         return default_map
 
     # Activation
-    def activate_analog(self) -> None:
-        joy_cfg = self._config.get("joystick", {})
-        self.deactivate()
-        try:
-            self._active = JoystickController(
-                joy_cfg.get("x_pin", 0),
-                joy_cfg.get("y_pin", 1),
-                joy_cfg.get("zoom_pin", 2),
-                joy_cfg.get("deadzone", 0.1),
-            )
-            self._active_type = "analog"
-            self._active_gamepad_index = None
-        except Exception:
-            # Unable to create analog joystick (likely SPI/MCP3008 not available)
-            self._active = None
-            self._active_type = None
-            self._active_gamepad_index = None
-
     def activate_gamepad(self, device_index: int, mapping: Dict[str, object]) -> None:
         self.deactivate()
         self._active = GamepadController(device_index, mapping)
@@ -99,10 +79,16 @@ class ControllerManager:
 
     # Unified interface
     def start_monitoring(self, callback: Callable[[float, float, float], None], button_callback: Optional[Callable[[str, bool], None]] = None) -> None:
-        if self._active is None:
-            self.activate_analog()
+        # Prefer first available gamepad; do not auto-activate analog
+        if self._active is None and pygame is not None:
+            pads = self.list_gamepads()
+            if pads:
+                try:
+                    mapping = self.get_gamepad_mapping()
+                    self.activate_gamepad(int(pads[0]["index"]), mapping)
+                except Exception:
+                    pass
         if self._active is not None:
-            # Some controllers accept button callback optional arg
             try:
                 self._active.start_monitoring(callback, button_callback)
             except TypeError:
