@@ -50,6 +50,21 @@ A touchscreen-based controller for multiple PTZ cameras using VISCA over IP prot
 
 If you use a game controller, open the Controllers tab to select a device and set mapping.
 
+### Re-download/Reset helper
+
+If you need to nuke the local copy and pull a fresh one, use:
+
+```bash
+chmod +x redownload.sh
+./redownload.sh
+```
+
+You can also pass a custom target directory and branch:
+
+```bash
+./redownload.sh /home/pi/RPIptz-visca-ip main
+```
+
 ### Notes on PyQt5 installation on Raspberry Pi
 
 - This project uses PyQt5. Building PyQt5 from source on Raspberry Pi can be extremely slow or hang.
