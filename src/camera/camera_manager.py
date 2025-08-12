@@ -137,8 +137,33 @@ class CameraManager:
         return False
             
     def _send_command(self, camera, command):
-        """Send a raw VISCA command to the camera"""
-        # Preferred: send via UDP directly to the camera IP/port to avoid relying on private API
+        """Send a raw VISCA payload to the camera using the library transport if available.
+
+        Many VISCA-over-IP implementations wrap serial payloads with a transport header.
+        The library likely knows how to do this, so prefer its send methods first.
+        """
+        # Prefer library/public methods first
+        try:
+            if hasattr(camera, 'send_command') and callable(getattr(camera, 'send_command')):
+                camera.send_command(command)
+                return True
+        except Exception:
+            pass
+        try:
+            if hasattr(camera, 'send') and callable(getattr(camera, 'send')):
+                camera.send(command)
+                return True
+        except Exception:
+            pass
+        try:
+            # Some libs expose a 'write' or similar
+            if hasattr(camera, 'write') and callable(getattr(camera, 'write')):
+                camera.write(command)
+                return True
+        except Exception:
+            pass
+
+        # Fallback to raw UDP (may not work for all cameras if a transport header is required)
         try:
             ip = getattr(camera, 'ip', None)
             port = getattr(camera, 'port', None)
@@ -149,7 +174,8 @@ class CameraManager:
                 return True
         except Exception as e:
             self.logger.error(f"UDP send failed: {e}")
-        # Fallback: try library internals
+
+        # As a last resort, try private sockets
         try:
             if hasattr(camera, '_socket'):
                 camera._socket.send(command)
@@ -157,17 +183,10 @@ class CameraManager:
             if hasattr(camera, 'socket'):
                 camera.socket.send(command)
                 return True
-            if hasattr(camera, 'send'):
-                camera.send(command)
-                return True
-            if hasattr(camera, 'send_command'):
-                camera.send_command(command)
-                return True
-            self.logger.error("No method found to send commands to camera")
-            return False
         except Exception as e:
-            self.logger.error(f"Error sending command to camera via fallback: {str(e)}")
-            return False
+            self.logger.error(f"Error sending command to camera (private socket): {str(e)}")
+        self.logger.error("No method found to send commands to camera")
+        return False
     
     def stop_camera(self):
         """Stop all movement of the active camera"""
