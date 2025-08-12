@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                             QPushButton, QLabel, QComboBox, QTabWidget, 
                             QGridLayout, QLineEdit, QSpinBox, QGroupBox,
-                            QSlider, QMessageBox, QStyle, QProxyStyle, QButtonGroup)
+                            QSlider, QMessageBox, QStyle, QProxyStyle, QButtonGroup, QSizePolicy)
 from PyQt5.QtCore import Qt, QTimer, QSize
 from PyQt5.QtGui import QFont
 from .controllers_page import ControllersPage
@@ -100,16 +100,19 @@ class MainWindow(QMainWindow):
         
         # Camera selection - replace dropdown with buttons
         camera_group = QGroupBox("Camera")
+        camera_group.setFlat(True)
         camera_layout = QHBoxLayout()
-        camera_layout.setContentsMargins(4, 4, 4, 4)
+        camera_layout.setContentsMargins(2, 2, 2, 2)
+        camera_layout.setSpacing(4)
         
         # Create camera selection buttons instead of dropdown
         self.camera_buttons = []
         for i, camera_name in enumerate(self.camera_manager.get_camera_list()):
             btn = QPushButton(camera_name)
             btn.setCheckable(True)
-            btn.setMinimumHeight(40)
+            btn.setMinimumHeight(36)
             btn.setFont(QFont("Arial", 11, QFont.Bold))
+            btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             # Use a lambda with default argument to capture the correct index
             btn.clicked.connect(lambda checked, idx=i: self.on_camera_button_clicked(idx))
             camera_layout.addWidget(btn)
@@ -132,8 +135,9 @@ class MainWindow(QMainWindow):
         
         # Joystick visualization
         joystick_group = QGroupBox("Input Values")
+        joystick_group.setFlat(True)
         joystick_layout = QGridLayout()
-        joystick_layout.setContentsMargins(4, 4, 4, 4)
+        joystick_layout.setContentsMargins(2, 2, 2, 2)
         
         self.pan_tilt_label = QLabel("Pan/Tilt: 0, 0")
         self.pan_tilt_label.setFont(QFont("Arial", 11))
@@ -148,8 +152,9 @@ class MainWindow(QMainWindow):
         
         # Zoom control slider - make it larger for touch
         zoom_group = QGroupBox("Zoom")
-        zoom_layout = QVBoxLayout()
-        zoom_layout.setContentsMargins(4, 4, 4, 4)
+        zoom_group.setFlat(True)
+        zoom_layout = QHBoxLayout()
+        zoom_layout.setContentsMargins(2, 2, 2, 2)
         
         self.zoom_slider = QSlider(Qt.Horizontal)
         self.zoom_slider.setMinimum(-100)
@@ -157,7 +162,7 @@ class MainWindow(QMainWindow):
         self.zoom_slider.setValue(0)
         self.zoom_slider.setTickPosition(QSlider.TicksBelow)
         self.zoom_slider.setTickInterval(10)
-        self.zoom_slider.setMinimumHeight(50)
+        self.zoom_slider.setMinimumHeight(40)
         
         # Apply the touch-friendly style
         touch_style = TouchSliderStyle()
@@ -174,28 +179,24 @@ class MainWindow(QMainWindow):
         
         self.zoom_slider.valueChanged.connect(self.on_zoom_slider_changed)
         
-        # Zoom +/- buttons with press-and-hold behavior
-        zoom_buttons_row = QHBoxLayout()
+        # Zoom +/- buttons at either end of the slider
         self.zoom_out_btn = QPushButton("−")
-        self.zoom_out_btn.setMinimumSize(64, 64)
+        self.zoom_out_btn.setMinimumSize(44, 44)
         self.zoom_out_btn.setAutoRepeat(True)
         self.zoom_out_btn.setAutoRepeatInterval(120)
         self.zoom_out_btn.pressed.connect(lambda: self.camera_manager.zoom_camera(-5))
         self.zoom_out_btn.released.connect(lambda: self.camera_manager.zoom_camera(0))
 
         self.zoom_in_btn = QPushButton("+")
-        self.zoom_in_btn.setMinimumSize(64, 64)
+        self.zoom_in_btn.setMinimumSize(44, 44)
         self.zoom_in_btn.setAutoRepeat(True)
         self.zoom_in_btn.setAutoRepeatInterval(120)
         self.zoom_in_btn.pressed.connect(lambda: self.camera_manager.zoom_camera(5))
         self.zoom_in_btn.released.connect(lambda: self.camera_manager.zoom_camera(0))
 
-        zoom_buttons_row.addWidget(self.zoom_out_btn)
-        zoom_buttons_row.addStretch()
-        zoom_buttons_row.addWidget(self.zoom_in_btn)
-
-        zoom_layout.addWidget(self.zoom_slider)
-        zoom_layout.addLayout(zoom_buttons_row)
+        zoom_layout.addWidget(self.zoom_out_btn)
+        zoom_layout.addWidget(self.zoom_slider, 1)
+        zoom_layout.addWidget(self.zoom_in_btn)
         zoom_group.setLayout(zoom_layout)
         left_controls.addWidget(zoom_group)
         
@@ -292,7 +293,8 @@ class MainWindow(QMainWindow):
         # Camera selection for presets
         camera_group = QGroupBox("Camera")
         camera_layout = QHBoxLayout()
-        camera_layout.setContentsMargins(4, 4, 4, 4)
+        camera_layout.setContentsMargins(2, 2, 2, 2)
+        camera_layout.setSpacing(4)
         
         # Create camera selection buttons for presets tab
         self.preset_camera_buttons = []
@@ -380,8 +382,10 @@ class MainWindow(QMainWindow):
         
         # Camera selection for configuration
         camera_group = QGroupBox("Select Camera to Configure")
+        camera_group.setFlat(True)
         camera_layout = QHBoxLayout()
-        camera_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
+        camera_layout.setContentsMargins(2, 2, 2, 2)  # Compact margins
+        camera_layout.setSpacing(4)
         
         self.config_camera_selector = QComboBox()
         self.config_camera_selector.addItems(self.camera_manager.get_camera_list())
@@ -421,7 +425,7 @@ class MainWindow(QMainWindow):
         
         # Save button
         self.save_config_button = QPushButton("Save Configuration")
-        self.save_config_button.setMinimumHeight(40)
+        self.save_config_button.setMinimumHeight(36)
         self.save_config_button.setFont(QFont("Arial", 10))
         self.save_config_button.clicked.connect(self.on_save_config)
         layout.addWidget(self.save_config_button)

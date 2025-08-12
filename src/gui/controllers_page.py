@@ -45,6 +45,8 @@ class ControllersPage(QWidget):
         # Mapping controls
         map_group = QGroupBox("Mapping")
         map_layout = QGridLayout()
+        map_layout.setHorizontalSpacing(6)
+        map_layout.setVerticalSpacing(4)
 
         # Axis selectors
         self.pan_axis_combo = QComboBox()
@@ -79,40 +81,40 @@ class ControllersPage(QWidget):
         self.apply_button.clicked.connect(self._apply_mapping)
 
         # Layout mapping widgets
+        # Two-row compact layout to avoid overflow on 480px height
+        # Row 0
         r = 0
         map_layout.addWidget(QLabel("Pan Axis:"), r, 0)
         map_layout.addWidget(self.pan_axis_combo, r, 1)
         map_layout.addWidget(self.invert_pan_cb, r, 2)
-        r += 1
-        map_layout.addWidget(QLabel("Tilt Axis:"), r, 0)
-        map_layout.addWidget(self.tilt_axis_combo, r, 1)
-        map_layout.addWidget(self.invert_tilt_cb, r, 2)
-        r += 1
+        map_layout.addWidget(QLabel("Tilt Axis:"), r, 3)
+        map_layout.addWidget(self.tilt_axis_combo, r, 4)
+        map_layout.addWidget(self.invert_tilt_cb, r, 5)
+        # Row 1
+        r = 1
         map_layout.addWidget(QLabel("Zoom Axis:"), r, 0)
         map_layout.addWidget(self.zoom_axis_combo, r, 1)
         map_layout.addWidget(self.invert_zoom_cb, r, 2)
-        r += 1
-        map_layout.addWidget(QLabel("Deadzone:"), r, 0)
-        map_layout.addWidget(self.deadzone_spin, r, 1)
-        r += 1
-        map_layout.addWidget(QLabel("Button: Zoom In"), r, 0)
+        map_layout.addWidget(QLabel("Deadzone:"), r, 3)
+        map_layout.addWidget(self.deadzone_spin, r, 4)
+        map_layout.addWidget(self.apply_button, r, 5)
+        # Row 2 - Buttons mapping, compact
+        r = 2
+        map_layout.addWidget(QLabel("Btn Zoom+"), r, 0)
         map_layout.addWidget(self.zoom_in_button, r, 1)
-        r += 1
-        map_layout.addWidget(QLabel("Button: Zoom Out"), r, 0)
-        map_layout.addWidget(self.zoom_out_button, r, 1)
-        r += 1
-        map_layout.addWidget(QLabel("Button: Stop"), r, 0)
-        map_layout.addWidget(self.stop_button, r, 1)
-        r += 1
-        map_layout.addWidget(QLabel("Button: Preset Store Toggle"), r, 0)
+        map_layout.addWidget(QLabel("Btn Zoom-"), r, 2)
+        map_layout.addWidget(self.zoom_out_button, r, 3)
+        map_layout.addWidget(QLabel("Btn Stop"), r, 4)
+        map_layout.addWidget(self.stop_button, r, 5)
+        # Row 3 - Preset toggle alone if needed
+        r = 3
+        map_layout.addWidget(QLabel("Btn Preset Toggle"), r, 0)
         map_layout.addWidget(self.preset_store_toggle_button, r, 1)
-        r += 1
-        map_layout.addWidget(self.apply_button, r, 0, 1, 3)
 
         map_group.setLayout(map_layout)
         layout.addWidget(map_group)
 
-        layout.addStretch()
+        # layout.addStretch()  # avoid pushing content off-screen on small displays
 
         # Live values preview
         self.live_label = QLabel("Live: pan=0.00 tilt=0.00 zoom=0.00")
