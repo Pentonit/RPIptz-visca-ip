@@ -32,15 +32,14 @@ class MainWindow(QMainWindow):
         self.setGeometry(0, 0, 800, 480)
         # Set window to fullscreen for 800x480 display
         self.showFullScreen()
-        # Ensure there is space for tabs by adding top margin
-        self.main_layout.setContentsMargins(8, 16, 8, 8)
         
         # Create central widget and layout
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout(self.central_widget)
         self.main_layout.setSpacing(8)
-        self.main_layout.setContentsMargins(8, 8, 8, 8)
+        # Ensure there is space for tabs by adding top margin
+        self.main_layout.setContentsMargins(8, 16, 8, 8)
         
         # Create tab widget for different screens
         self.tab_widget = QTabWidget()
